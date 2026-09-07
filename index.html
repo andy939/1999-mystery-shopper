@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c1218">
+<title>1999 秘密客抽測工具</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --paper:#e9edf3; --surface:#fff; --surface-2:#f4f7fa;
+  --ink:#131c26; --ink-2:#485664; --ink-3:#7a8898;
+  --line:#d6dee8; --line-2:#c3cede;
+  --accent:#1f4b8f; --accent-2:#2f6ac0; --accent-soft:#e6ecf8;
+  --good:#146b52; --good-soft:#e2f1eb;
+  --btn-on:#fff;
+  --serif:"Noto Serif TC",Georgia,serif;
+  --sans:"Noto Sans TC","Segoe UI","Microsoft JhengHei",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0c1218; --surface:#141d26; --surface-2:#1a2430;
+  --ink:#e8eef5; --ink-2:#aab7c4; --ink-3:#7c8a99;
+  --line:#28353f; --line-2:#36485a;
+  --accent:#86adee; --accent-2:#a7c5f7; --accent-soft:#182842;
+  --good:#63bd9a; --good-soft:#123028; --btn-on:#0c1218;}}
+:root[data-theme="dark"]{
+  --paper:#0c1218; --surface:#141d26; --surface-2:#1a2430;
+  --ink:#e8eef5; --ink-2:#aab7c4; --ink-3:#7c8a99;
+  --line:#28353f; --line-2:#36485a;
+  --accent:#86adee; --accent-2:#a7c5f7; --accent-soft:#182842;
+  --good:#63bd9a; --good-soft:#123028; --btn-on:#0c1218;}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;
+  line-height:1.65;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--serif);margin:0;text-wrap:balance}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
+.wrap{max-width:680px;margin:0 auto;padding:26px 16px 44px}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3)}
+h1{font-size:26px;line-height:1.25;margin:5px 0 8px}
+.lede{color:var(--ink-2);font-size:14.5px;margin:0}
+.meta{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:12px;
+  padding-top:12px;border-top:1px solid var(--line)}
+.tools{display:flex;flex-direction:column;gap:11px;margin:20px 0 0}
+.tool{display:block;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:0 12px 12px 0;padding:14px 16px;text-decoration:none;color:inherit}
+.tool:hover{border-color:var(--accent);background:var(--accent-soft)}
+.tool h3{font-size:17px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tool .tag{font-family:var(--mono);font-size:10px;border:1px solid var(--line-2);border-radius:999px;
+  padding:1px 8px;color:var(--ink-3);font-weight:400}
+.tool .tag.rec{background:var(--good-soft);border-color:var(--good);color:var(--good);font-weight:600}
+.tool p{margin:5px 0 0;font-size:13.5px;color:var(--ink-2)}
+.tool .go{font-family:var(--mono);font-size:11.5px;color:var(--accent);margin-top:7px;display:block}
+h2{font-size:16px;margin:26px 0 9px}
+ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;font-size:14px}
+ol.steps code{font-family:var(--mono);font-size:12.5px;background:var(--surface-2);border-radius:4px;
+  padding:1px 5px}
+.note{background:var(--surface-2);border-left:3px solid var(--ink-3);border-radius:0 8px 8px 0;
+  padding:11px 14px;font-size:13px;color:var(--ink-2);margin-top:14px}
+.note b{color:var(--ink)}
+footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:11px;color:var(--ink-3);line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">臺北市民當家熱線 1999 · 話務品質稽核</div>
+  <h1>秘密客抽測工具</h1>
+  <p class="lede">以市府常見問答題庫為標準答案，產生可照著念的測試腳本：完整對話模擬、追問清單、以及每一句話的 FAQ 出處。</p>
+  <div class="meta">題庫 8,317 題 · 涵蓋 73 個局處 · 2026-09-04 匯出</div>
+
+  <div class="tools">
+    <a class="tool" href="mobile.html">
+      <h3>手機版腳本工具 <span class="tag rec">打電話時用這個</span></h3>
+      <p>抽一題 → 撥 1999 → 看著腳本問。含逐頁腳本、追問打勾、螢幕不休眠、字級調整。</p>
+      <span class="go">開啟 mobile.html →</span>
+    </a>
+    <a class="tool" href="desktop.html">
+      <h3>桌機版抽測台 <span class="tag">三欄不捲頁</span></h3>
+      <p>左右三欄：選局處、選主題、看腳本。可全展開／全收合、列印或存 PDF。</p>
+      <span class="go">開啟 desktop.html →</span>
+    </a>
+    <a class="tool" href="1999%E7%A7%98%E5%AF%86%E5%AE%A2%E8%85%B3%E6%9C%AC%E5%8C%85.pdf">
+      <h3>腳本包 PDF <span class="tag">離線 · 12 通</span></h3>
+      <p>A5 大字排版，一通一節。存到手機「檔案」或 Books 即可離線翻閱，不需網路。</p>
+      <span class="go">下載 PDF →</span>
+    </a>
+  </div>
+
+  <h2>手機加到主畫面</h2>
+  <ol class="steps">
+    <li><b>Android Chrome</b>：開 <code>mobile.html</code> → 右上選單 → 加到主畫面</li>
+    <li><b>iPhone Safari</b>：開 <code>mobile.html</code> → 下方分享鈕 → 加入主畫面</li>
+    <li>之後從主畫面圖示開，右上角就有「撥 1999」，一手拿手機一手抄筆記</li>
+  </ol>
+
+  <div class="note"><b>怎麼用腳本：</b>對話模擬裡藍色是你要念的台詞，綠色是「專員正解版」——
+    那些句子直接取自該題常見問答原文，不是自行編寫。專員實際說法與綠色差多少，就是知識面的缺口。
+    追問清單每題都附「正解應含」與依據哪一則 FAQ，可即時核對。</div>
+
+  <footer>
+    資料來源：臺北市政府常見問答（各局處發布，2026-09-04 匯出，共 8,317 題），內容著作權屬各發布機關。<br>
+    本站為話務品質稽核之輔助工具，答覆內容請以市府原始問答頁與各業管機關最新公告為準。
+  </footer>
+</div>
+</body>
+</html>
