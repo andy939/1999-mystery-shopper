@@ -148,6 +148,9 @@ select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-
 .rowbtn button{flex:1 1 0;border-radius:10px;border:1px solid var(--accent);background:var(--accent);
   color:var(--btn-on);padding:12px 0;font-weight:600;font-size:calc(14px * var(--fs));cursor:pointer}
 .rowbtn button.ghost{background:transparent;color:var(--accent);border-color:var(--line-2)}
+.rowbtn.three button{padding:11px 3px;font-size:calc(13px * var(--fs));white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rowbtn.three #rand-lbl{font-size:calc(12.5px * var(--fs))}
 
 .refs{display:flex;flex-direction:column;gap:8px}
 .ref{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 9px 9px 0;
@@ -206,8 +209,10 @@ select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-
   <div class="view" id="v-pick">
     <div class="sec">
       <h2><span class="n">抽題</span>隨機或自選</h2>
-      <div class="rowbtn" style="padding:11px 13px 0">
-        <button id="b-random2">🎲 隨機抽一題</button>
+      <div class="rowbtn three" style="padding:11px 13px 0">
+        <button id="b-rand-org">🎲 <span id="rand-lbl">本局處</span></button>
+        <button class="ghost" id="b-random2">🎲 全題庫</button>
+        <button class="ghost" id="b-copy">複製腳本</button>
       </div>
       <div class="fields">
         <div class="field"><label for="f-persona">秘密客身分</label><select id="f-persona"></select></div>
@@ -215,9 +220,6 @@ select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-
         <div class="field"><label for="f-window">撥入時段</label><select id="f-window"></select></div>
         <div class="field"><label for="f-search">全題庫搜尋</label>
           <input type="text" id="f-search" placeholder="拖吊、特休…" inputmode="search"></div>
-      </div>
-      <div class="rowbtn">
-        <button class="ghost" id="b-copy">複製整份腳本</button>
       </div>
     </div>
     <div class="sec">
@@ -639,6 +641,8 @@ function rebuild(){
   S.dl=dialogue(item);S.asked={};
   el('b-org').textContent=S.org.org+' ／ '+item.u;
   el('b-q').textContent=item.q;
+  var lbl=el('rand-lbl');
+  if(lbl)lbl.textContent=S.org?(S.org.org.length>4?S.org.org.slice(0,4):S.org.org):'本局處';
   el('b-chips').innerHTML='<span class="chip on">'+esc(L.n)+'</span><span class="chip">'+esc(p.n)+
     '</span><span class="chip">'+esc(W.n)+'</span><span class="chip">'+esc(item.t)+
     '</span><span class="chip">點閱 '+num(item.h)+'</span>';
@@ -662,11 +666,16 @@ function selectItem(orgName,q){
   renderOrgs(null);
   ensureOrg(S.org,function(){S.item=want;renderTopics(el('f-search').value.trim());rebuild()});
 }
-function randomPick(){
-  var wsum=0,i;
-  for(i=0;i<ORGS.length;i++)wsum+=ORGS[i].total;
-  var r=Math.random()*wsum,acc=0,org=ORGS[0];
-  for(i=0;i<ORGS.length;i++){acc+=ORGS[i].total;if(r<=acc){org=ORGS[i];break}}
+function randomPick(orgOnly){
+  var i,org;
+  if(orgOnly&&S.org){
+    org=S.org;
+  }else{
+    var wsum=0;
+    for(i=0;i<ORGS.length;i++)wsum+=ORGS[i].total;
+    var r=Math.random()*wsum,acc=0;org=ORGS[0];
+    for(i=0;i<ORGS.length;i++){acc+=ORGS[i].total;if(r<=acc){org=ORGS[i];break}}
+  }
   var it=org.items[Math.floor(Math.random()*org.items.length)];
   var lv=['L1','L1','L1','L2','L2','L2','L2','L3','L3','L4'],
       pk=Object.keys(PERSONAS),wk=Object.keys(WINDOWS);
@@ -675,9 +684,10 @@ function randomPick(){
   S.win=wk[Math.floor(Math.random()*wk.length)];
   el('f-level').value=S.level;el('f-persona').value=S.persona;el('f-window').value=S.win;
   el('f-search').value='';
+  if(el('f-orgq'))el('f-orgq').value='';
   selectItem(org.org,it.q);
   showView('v-script');
-  toast('抽出：'+org.org+' · '+S.level);
+  toast((orgOnly?'本局處抽出：':'抽出：')+org.org+' · '+S.level);
 }
 function showView(id){
   var vs=document.querySelectorAll('.view'),tb=document.querySelectorAll('.tabs button[data-v]'),i;
@@ -733,8 +743,11 @@ function init(){
   var ot=null;
   el('f-orgq').addEventListener('input',function(){
     clearTimeout(ot);ot=setTimeout(function(){renderTopics(el('f-search').value.trim())},130);});
-  el('b-random').addEventListener('click',randomPick);
-  el('b-random2').addEventListener('click',randomPick);
+  el('b-random').addEventListener('click',function(){randomPick(false)});
+  el('b-random2').addEventListener('click',function(){randomPick(false)});
+  el('b-rand-org').addEventListener('click',function(){
+    if(!S.org){toast('請先選一個局處');return}
+    randomPick(true);});
   el('b-copy').addEventListener('click',function(){copyText(plainScript())});
   el('b-wake').addEventListener('click',toggleWake);
   el('b-fs').addEventListener('click',function(){
