@@ -137,7 +137,23 @@ ol.pts{margin:0;padding-left:21px;display:flex;flex-direction:column;gap:6px;
 .pick .nm{flex:1 1 auto;min-width:0;font-size:calc(14.5px * var(--fs))}
 .pick .sub{display:block;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:2px}
 .pick .qty{font-family:var(--mono);font-size:11px;color:var(--ink-3);flex:none}
-.scroll-h{max-height:38vh;overflow-y:auto;overflow-x:hidden;position:relative}
+/* 選題頁：表頭固定，清單佔滿剩餘高度且是唯一的捲動區 */
+#v-pick.on{display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;padding-bottom:0}
+.pickhead{background:var(--surface);border-bottom:1px solid var(--line);display:flex;flex-direction:column}
+.pickhead .rowbtn{padding:10px 12px 0}
+.pickhead .fields{padding:10px 12px}
+.crumb{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface-2);
+  border-top:1px solid var(--line)}
+.crumb .back{flex:none;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;
+  width:36px;height:31px;font-size:16px;cursor:pointer;color:var(--accent);line-height:1}
+.crumb .ct{font-weight:600;font-size:calc(14px * var(--fs));white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.crumb .cn{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-3);flex:none}
+.findbox{padding:8px 12px;background:var(--surface);border-top:1px solid var(--line)}
+.btn-goall{background:var(--accent);color:var(--btn-on);border:1px solid var(--accent);
+  border-radius:9px;padding:10px 14px;font-size:calc(13.5px * var(--fs));font-weight:600;cursor:pointer}
+.picklist{min-height:0;overflow-y:auto;overflow-x:hidden;position:relative;
+  -webkit-overflow-scrolling:touch;padding-bottom:calc(14px + var(--safe-b))}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:11px 13px}
 .field{display:flex;flex-direction:column;gap:3px;min-width:0}
 .field label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
@@ -208,9 +224,8 @@ select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-
 
   <!-- 選題 -->
   <div class="view" id="v-pick">
-    <div class="sec">
-      <h2><span class="n">抽題</span>隨機或自選</h2>
-      <div class="rowbtn three" style="padding:11px 13px 0">
+    <div class="pickhead">
+      <div class="rowbtn three">
         <button id="b-rand-org">🎲 <span id="rand-lbl">本局處</span></button>
         <button class="ghost" id="b-random2">🎲 全題庫</button>
         <button class="ghost" id="b-copy">複製腳本</button>
@@ -218,21 +233,20 @@ select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-
       <div class="fields">
         <div class="field"><label for="f-persona">秘密客身分</label><select id="f-persona"></select></div>
         <div class="field"><label for="f-level">情境難度</label><select id="f-level"></select></div>
-        <div class="field wide"><label for="f-search">全題庫搜尋（8,317 題）</label>
-          <input type="text" id="f-search" placeholder="拖吊、特休、房屋稅…" inputmode="search"></div>
       </div>
-    </div>
-    <div class="sec">
-      <h2><span class="n">1</span>選局處<span class="tail" id="org-count"></span></h2>
-      <div class="scroll-h" id="org-list"></div>
-    </div>
-    <div class="sec">
-      <h2><span class="n">2</span>選主題<span class="tail" id="topic-count"></span></h2>
-      <div style="padding:9px 13px 0">
-        <input type="text" id="f-orgq" placeholder="在這個局處裡面找…（可留空看全部）"
+      <div class="crumb">
+        <button class="back" id="b-back" hidden>←</button>
+        <span class="ct" id="crumb-t">選局處</span>
+        <span class="cn" id="crumb-n"></span>
+      </div>
+      <div class="findbox">
+        <input type="text" id="f-find" placeholder="找局處或題目，例如 勞動、拖吊"
                inputmode="search" autocomplete="off">
       </div>
-      <div class="scroll-h" style="max-height:40vh" id="topic-list"></div>
+    </div>
+    <div class="picklist" id="pick-list">
+      <div id="org-list"></div>
+      <div id="topic-list" hidden></div>
     </div>
   </div>
 
@@ -355,7 +369,8 @@ function currentWindow(){
   if(m>=1080&&m<1200)return 'night';   /* 18:00–20:00 */
   return 'off';
 }
-var S={org:null,item:null,persona:'citizen',level:'L2',win:currentWindow(),fs:1,asked:{},dl:[]};
+var S={org:null,item:null,persona:'citizen',level:'L2',win:currentWindow(),fs:1,
+  asked:{},dl:[],pickMode:'org'};
 var LSL='mystery1999m.last';
 function lsGet(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -558,51 +573,81 @@ function renderProbes(){
   el('v-probe').scrollTop=0;
 }
 
-/* ---------- 選題清單 ---------- */
-function renderOrgs(filter){
-  var host=el('org-list'),html='',list=ORGS,i;
-  if(filter){list=[];for(i=0;i<ORGS.length;i++)if(ORGS[i].org.indexOf(filter)>=0)list.push(ORGS[i]);}
-  for(i=0;i<list.length;i++){var o=list[i];
-    html+='<button class="pick" data-org="'+esc(o.org)+'" aria-current="'+(S.org&&S.org.org===o.org)+
-      '"><span class="nm">'+esc(o.org)+'</span><span class="qty">'+o.total+'</span></button>';}
-  host.innerHTML=html||'<div class="note" style="padding:14px">沒有符合的局處</div>';
-  el('org-count').textContent=list.length+' 個';
+/* ---------- 選題清單（單一捲動區，局處 → 主題 逐層進入） ---------- */
+function filterOrgs(kw){
+  if(!kw)return ORGS.slice();
+  var out=[];
+  for(var i=0;i<ORGS.length;i++)if(ORGS[i].org.indexOf(kw)>=0)out.push(ORGS[i]);
+  return out;
 }
-function renderTopics(term){
-  var host=el('topic-list'),items=[],html='',i,j;
-  if(term){
+function renderOrgList(list){
+  var html='',i;
+  for(i=0;i<list.length;i++){
+    var o=list[i];
+    html+='<button class="pick" data-org="'+esc(o.org)+'" aria-current="'+(S.org&&S.org.org===o.org)+
+      '"><span class="nm">'+esc(o.org)+'</span><span class="qty">'+o.total+'</span></button>';
+  }
+  el('org-list').innerHTML=html||'<div class="note" style="padding:18px 14px">'+
+    '沒有這個局處。換個字，或直接打題目關鍵字（例如 拖吊、特休）找題目。</div>';
+  el('org-list').hidden=false;el('topic-list').hidden=true;
+  el('crumb-t').textContent='選局處';
+  el('crumb-n').textContent=list.length+' 個局處';
+  el('b-back').hidden=true;
+  keepCurrentInView();
+}
+function renderTopicList(kw,scope){
+  var items=[],html='',i,j;
+  if(scope==='all'){
     outer:for(i=0;i<ORGS.length;i++)for(j=0;j<ORGS[i].items.length;j++){
-      var it=ORGS[i].items[j];
-      if(it.q.indexOf(term)>=0)items.push([ORGS[i],it]);
-      if(items.length>=80)break outer;
+      if(ORGS[i].items[j].q.indexOf(kw)>=0)items.push([ORGS[i],ORGS[i].items[j]]);
+      if(items.length>=200)break outer;
     }
   }else if(S.org){
-    var sub=(el('f-orgq')?el('f-orgq').value.trim():'');
     for(i=0;i<S.org.items.length;i++){
-      if(sub){
-        var itx=S.org.items[i];
-        if(itx.q.indexOf(sub)<0&&!(itx.a&&itx.a.indexOf(sub)>=0))continue;
-      }
-      items.push([S.org,S.org.items[i]]);
+      var it=S.org.items[i];
+      if(kw&&it.q.indexOf(kw)<0&&!(it.a&&it.a.indexOf(kw)>=0))continue;
+      items.push([S.org,it]);
     }
   }
   for(i=0;i<items.length;i++){
     var org=items[i][0],item=items[i][1];
     html+='<button class="pick" data-org="'+esc(org.org)+'" data-q="'+esc(item.q)+'" aria-current="'+
       (S.item&&S.item.q===item.q)+'"><span class="nm">'+esc(item.q)+
-      '<span class="sub">'+esc(item.t)+' · 點閱 '+num(item.h)+(term?' · '+esc(org.org):'')+
-      '</span></span></button>';
+      '<span class="sub">'+esc(item.t)+' · 點閱 '+num(item.h)+
+      (scope==='all'?' · '+esc(org.org):'')+'</span></span></button>';
   }
-  host.innerHTML=html||'<div class="note" style="padding:14px">請先選局處，或用搜尋找題目</div>';
-  /* 回到選題時，讓目前選中的那一筆出現在畫面中間 */
-  var cur=host.querySelector('[aria-current="true"]');
-  if(cur){
-    var top=cur.offsetTop-(host.clientHeight/2)+(cur.offsetHeight/2);
-    host.scrollTop=top>0?top:0;
-  }else host.scrollTop=0;
-  var sub2=(el('f-orgq')?el('f-orgq').value.trim():'');
-  el('topic-count').textContent=items.length?
-    (items.length+' 題'+(term?'（全題庫）':(sub2?'／共 '+S.org.total:'（全部）'))):'0 題';
+  el('topic-list').innerHTML=html||('<div class="note" style="padding:18px 14px">'+'這個局處裡沒有「'+esc(kw)+'」相關題目。'+'<br><br><button class="btn-goall" data-goall="1">改在全題庫找「'+esc(kw)+'」</button></div>');
+  el('topic-list').hidden=false;el('org-list').hidden=true;
+  if(scope==='all'){
+    el('crumb-t').textContent='全題庫找題目：'+kw;
+    el('crumb-n').textContent=items.length+' 題'+(items.length>=200?'（前 200）':'');
+  }else{
+    el('crumb-t').textContent=S.org?S.org.org:'選主題';
+    el('crumb-n').textContent=items.length+' 題'+(kw?'／共 '+S.org.total:'（全部）');
+  }
+  el('b-back').hidden=false;
+  keepCurrentInView();
+}
+/* 回到選題時把選中的那一筆捲到畫面中央 */
+function keepCurrentInView(){
+  var host=el('pick-list'),cur=host.querySelector('[aria-current="true"]');
+  if(!cur){host.scrollTop=0;return}
+  var top=cur.offsetTop-(host.clientHeight/2)+(cur.offsetHeight/2);
+  host.scrollTop=top>0?top:0;
+}
+function renderPick(){
+  var kw=el('f-find')?el('f-find').value.trim():'';
+  if(S.pickMode==='topic'){renderTopicList(kw,'org');return}
+  if(S.pickMode==='search'){renderTopicList(kw,'all');return}
+  var orgs=filterOrgs(kw);
+  if(kw&&!orgs.length){S.pickMode='search';renderTopicList(kw,'all');return}
+  renderOrgList(orgs);
+}
+function backPick(){
+  S.pickMode='org';
+  var f=el('f-find');
+  if(f){f.value='';f.placeholder='找局處或題目，例如 勞動、拖吊';}
+  renderPick();
 }
 
 /* ---------- 複製 ---------- */
@@ -661,9 +706,13 @@ function rebuild(){
 }
 function selectOrg(name){
   for(var i=0;i<ORGS.length;i++)if(ORGS[i].org===name){S.org=ORGS[i];break}
-  if(el('f-orgq'))el('f-orgq').value='';
-  renderOrgs(null);renderTopics('');
-  ensureOrg(S.org,function(){S.item=S.org.items[0];renderTopics(el('f-search').value.trim());rebuild()});
+  S.pickMode='topic';
+  var f=el('f-find');
+  if(f){f.value='';f.placeholder='在「'+S.org.org+'」裡面找…';}
+  el('crumb-t').textContent=S.org.org;
+  el('crumb-n').textContent='載入中…';
+  el('b-back').hidden=false;
+  ensureOrg(S.org,function(){S.item=S.org.items[0];renderPick();rebuild()});
 }
 function selectItem(orgName,q){
   var found=null,i,j;
@@ -673,8 +722,8 @@ function selectItem(orgName,q){
     break;}
   if(!S.org)S.org=ORGS[0];
   var want=found||S.org.items[0];
-  renderOrgs(null);
-  ensureOrg(S.org,function(){S.item=want;renderTopics(el('f-search').value.trim());rebuild()});
+  if(S.pickMode==='org')S.pickMode='topic';
+  ensureOrg(S.org,function(){S.item=want;renderPick();rebuild()});
 }
 function randomPick(orgOnly){
   var i,org;
@@ -692,8 +741,9 @@ function randomPick(orgOnly){
   S.level=lv[Math.floor(Math.random()*lv.length)];
   S.persona=pk[Math.floor(Math.random()*pk.length)];
   el('f-level').value=S.level;el('f-persona').value=S.persona;
-  el('f-search').value='';
-  if(el('f-orgq'))el('f-orgq').value='';
+  S.pickMode='topic';
+  var ff=el('f-find');
+  if(ff){ff.value='';ff.placeholder='在「'+org.org+'」裡面找…';}
   selectItem(org.org,it.q);
   showView('v-script');
   toast((orgOnly?'本局處抽出：':'抽出：')+org.org+' · '+S.level);
@@ -731,24 +781,38 @@ function init(){
     if(last.level&&LEVELS[last.level]){S.level=last.level;el('f-level').value=S.level}
     if(last.fs){S.fs=last.fs;document.documentElement.style.setProperty('--fs',S.fs)}
   }
-  if(last&&last.org)selectItem(last.org,last.q);else selectOrg(ORGS[0].org);
+  renderPick();
+  if(last&&last.org){
+    for(var k2=0;k2<ORGS.length;k2++)if(ORGS[k2].org===last.org){S.org=ORGS[k2];break}
+    if(!S.org)S.org=ORGS[0];
+    S.pickMode='topic';
+    var f2=el('f-find');
+    if(f2)f2.placeholder='在「'+S.org.org+'」裡面找…';
+    selectItem(S.org.org,last.q);
+  }else{
+    S.org=ORGS[0];
+    ensureOrg(S.org,function(){S.item=S.org.items[0];rebuild()});
+  }
 
-  el('org-list').addEventListener('click',function(e){
-    var b=e.target.closest('[data-org]');if(b)selectOrg(b.getAttribute('data-org'));});
-  el('topic-list').addEventListener('click',function(e){
-    var b=e.target.closest('[data-q]');
-    if(b){selectItem(b.getAttribute('data-org'),b.getAttribute('data-q'));showView('v-script');}});
+  el('pick-list').addEventListener('click',function(e){
+    var t=e.target.closest('[data-q]');
+    if(t){selectItem(t.getAttribute('data-org'),t.getAttribute('data-q'));showView('v-script');return}
+    var o=e.target.closest('[data-org]');
+    if(o){selectOrg(o.getAttribute('data-org'));return}
+    var g=e.target.closest('[data-goall]');
+    if(g){S.pickMode='search';renderPick();}});
+  el('b-back').addEventListener('click',backPick);
   el('v-probe').addEventListener('change',function(e){
     var t=e.target,k=t.getAttribute&&t.getAttribute('data-ask');
     if(k===null||k===undefined)return;
     S.asked[k]=t.checked;t.closest('.probe').classList.toggle('done',t.checked);});
   el('f-persona').addEventListener('change',function(){S.persona=this.value;rebuild()});
   el('f-level').addEventListener('change',function(){S.level=this.value;rebuild()});
-  el('f-search').addEventListener('input',function(){
-    var v=this.value.trim();renderOrgs(v&&v.length<5?v:null);renderTopics(v);});
-  var ot=null;
-  el('f-orgq').addEventListener('input',function(){
-    clearTimeout(ot);ot=setTimeout(function(){renderTopics(el('f-search').value.trim())},130);});
+  var ft=null;
+  el('f-find').addEventListener('input',function(){
+    clearTimeout(ft);ft=setTimeout(function(){
+      if(S.pickMode==='search'&&!el('f-find').value.trim())S.pickMode='org';
+      renderPick();},130);});
   el('b-random').addEventListener('click',function(){randomPick(false)});
   el('b-random2').addEventListener('click',function(){randomPick(false)});
   el('b-rand-org').addEventListener('click',function(){
