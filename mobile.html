@@ -149,7 +149,12 @@ ol.pts{margin:0;padding-left:21px;display:flex;flex-direction:column;gap:6px;
 .crumb .ct{font-weight:600;font-size:calc(14px * var(--fs));white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis}
 .crumb .cn{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-3);flex:none}
-.findbox{padding:8px 12px;background:var(--surface);border-top:1px solid var(--line)}
+.findbox{padding:8px 12px;background:var(--surface);border-top:1px solid var(--line);
+  display:flex;gap:8px;align-items:stretch}
+.findbox input{flex:1 1 auto}
+.findrand{flex:none;width:46px;background:var(--accent);color:var(--btn-on);border:1px solid var(--accent);
+  border-radius:9px;font-size:17px;cursor:pointer;line-height:1}
+.findrand:active{background:var(--accent-2)}
 .btn-goall{background:var(--accent);color:var(--btn-on);border:1px solid var(--accent);
   border-radius:9px;padding:10px 14px;font-size:calc(13.5px * var(--fs));font-weight:600;cursor:pointer}
 .picklist{min-height:0;overflow-y:auto;overflow-x:hidden;position:relative;
@@ -227,8 +232,8 @@ select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-
   <div class="view" id="v-pick">
     <div class="pickhead">
       <div class="rowbtn three">
-        <button id="b-rand-org">🎲 <span id="rand-lbl">本局處</span></button>
-        <button class="ghost" id="b-random2">🎲 全題庫</button>
+        <button id="b-rand-org">🎲 <span id="rand-lbl">本局處</span>抽</button>
+        <button class="ghost" id="b-random2">🎲 全隨機</button>
         <button class="ghost" id="b-copy">複製腳本</button>
       </div>
       <div class="fields">
@@ -243,6 +248,7 @@ select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-
       <div class="findbox">
         <input type="text" id="f-find" placeholder="找局處或題目，例如 勞動、拖吊"
                inputmode="search" autocomplete="off">
+        <button class="findrand" id="b-rand-here" title="依上面的身分與難度，在這個機關裡隨機抽一題">🎲</button>
       </div>
     </div>
     <div class="picklist" id="pick-list">
@@ -818,17 +824,21 @@ function randomPick(orgOnly){
     for(i=0;i<ORGS.length;i++){acc+=ORGS[i].total;if(r<=acc){org=ORGS[i];break}}
   }
   var it=org.items[Math.floor(Math.random()*org.items.length)];
-  var lv=['L1','L1','L1','L2','L2','L2','L2','L3','L3','L4'],
-      pk=Object.keys(PERSONAS),wk=Object.keys(WINDOWS);
-  S.level=lv[Math.floor(Math.random()*lv.length)];
-  S.persona=pk[Math.floor(Math.random()*pk.length)];
+  S.seed=1000+Math.floor(Math.random()*9000);
+  /* 本局處抽：保留目前的身分與難度，只換題目；全題庫抽才連設定一起重骰 */
+  if(!orgOnly){
+    var lv=['L1','L1','L1','L2','L2','L2','L2','L2','L3','L3','L3','L4'],
+        pk=Object.keys(PERSONAS);
+    S.level=lv[Math.floor(Math.random()*lv.length)];
+    S.persona=pk[Math.floor(Math.random()*pk.length)];
+  }
   el('f-level').value=S.level;el('f-persona').value=S.persona;
   S.pickMode='topic';
   var ff=el('f-find');
   if(ff){ff.value='';ff.placeholder='在「'+org.org+'」裡面找…';}
   selectItem(org.org,it.q);
   showView('v-script');
-  toast((orgOnly?'本局處抽出：':'抽出：')+org.org+' · '+S.level);
+  toast((orgOnly?'依設定抽出：':'抽出：')+org.org+' · '+PERSONAS[S.persona].n+' · '+S.level);
 }
 function showView(id){
   var vs=document.querySelectorAll('.view'),tb=document.querySelectorAll('.tabs button[data-v]'),i;
@@ -897,9 +907,12 @@ function init(){
       renderPick();},130);});
   el('b-random').addEventListener('click',function(){randomPick(false)});
   el('b-random2').addEventListener('click',function(){randomPick(false)});
-  el('b-rand-org').addEventListener('click',function(){
+  function randHere(){
     if(!S.org){toast('請先選一個局處');return}
-    randomPick(true);});
+    randomPick(true);
+  }
+  el('b-rand-org').addEventListener('click',randHere);
+  el('b-rand-here').addEventListener('click',randHere);
   el('b-copy').addEventListener('click',function(){copyText(plainScript())});
   el('b-reroll').addEventListener('click',function(){
     S.seed=1000+Math.floor(Math.random()*9000);rebuild();toast('換了說法 · 腳本 #'+S.seed);});

@@ -263,7 +263,8 @@ ol.points li{font-size:12.5px;line-height:1.6}
   <span class="said" id="said"></span>
   <button class="btn ghost" id="btn-copy">複製腳本</button>
   <button class="btn ghost" id="btn-print">列印／PDF</button>
-  <button class="btn" id="btn-random">隨機抽一題</button>
+  <button class="btn ghost" id="btn-random-org">本局處抽（依設定）</button>
+  <button class="btn" id="btn-random">全隨機抽一題</button>
 </div>
 
 <div class="board" id="board">
@@ -870,20 +871,28 @@ function selectItem(orgName,q){
   ensureOrg(S.org,function(){S.item=want;
     renderTopics(el('f-search').value.trim());renderSheet();remember()});
 }
-function randomPick(){
+function randomPick(orgOnly){
   var wsum=0,i;
   for(i=0;i<ORGS.length;i++)wsum+=ORGS[i].total;
-  var r=Math.random()*wsum,acc=0,org=ORGS[0];
-  for(i=0;i<ORGS.length;i++){acc+=ORGS[i].total;if(r<=acc){org=ORGS[i];break}}
+  var org=ORGS[0];
+  if(orgOnly&&S.org){org=S.org;}
+  else{
+    var r=Math.random()*wsum,acc=0;
+    for(i=0;i<ORGS.length;i++){acc+=ORGS[i].total;if(r<=acc){org=ORGS[i];break}}
+  }
   var it=org.items[Math.floor(Math.random()*org.items.length)];
-  var lv=['L1','L1','L1','L2','L2','L2','L2','L3','L3','L4'],
-      pk=Object.keys(PERSONAS);
-  S.level=lv[Math.floor(Math.random()*lv.length)];
-  S.persona=pk[Math.floor(Math.random()*pk.length)];
+  S.seed=1000+Math.floor(Math.random()*9000);
+  if(!orgOnly){
+    var lv=['L1','L1','L1','L2','L2','L2','L2','L3','L3','L4'],
+        pk=Object.keys(PERSONAS);
+    S.level=lv[Math.floor(Math.random()*lv.length)];
+    S.persona=pk[Math.floor(Math.random()*pk.length)];
+  }
   el('f-level').value=S.level;el('f-persona').value=S.persona;
   el('f-search').value='';
   selectItem(org.org,it.q);
-  flash('said','抽出：'+org.org+' · '+S.level);
+  flash('said',(orgOnly?'依設定抽出：':'抽出：')+org.org+' · '+
+    PERSONAS[S.persona].n+' · '+S.level);
 }
 
 /* ================= init ================= */
@@ -918,7 +927,10 @@ function init(){
   el('f-level').addEventListener('change',function(){S.level=this.value;renderSheet();remember()});
   el('f-search').addEventListener('input',function(){
     var v=this.value.trim();renderOrgs(v&&v.length<5?v:null);renderTopics(v);});
-  el('btn-random').addEventListener('click',randomPick);
+  el('btn-random').addEventListener('click',function(){randomPick(false)});
+  el('btn-random-org').addEventListener('click',function(){
+    if(!S.org){flash('said','請先選一個局處');return}
+    randomPick(true);});
   el('btn-expand').addEventListener('click',function(){setAllBlk(true)});
   el('btn-collapse').addEventListener('click',function(){setAllBlk(false)});
   el('btn-reroll').addEventListener('click',function(){
