@@ -94,7 +94,7 @@ select:hover,input:hover{border-color:var(--accent)}
 .count{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);
   font-variant-numeric:tabular-nums;flex:none}
 .caret{font-family:var(--mono);font-size:11px;color:var(--ink-3);flex:none}
-.body{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden}
+.body{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;position:relative}
 .col.fold > .head{flex-direction:column;height:100%;border-bottom:none;padding:10px 6px;gap:10px;
   justify-content:flex-start}
 .col.fold > .head h2{writing-mode:vertical-rl;white-space:nowrap;overflow:visible}
@@ -566,6 +566,12 @@ function renderTopics(term){
       (item.h>=200000?'<span class="hot">熱</span>':'')+'</button>';
   }
   host.innerHTML=html||'<div class="empty">請先選局處，或用上方搜尋找題目</div>';
+  /* 回到選題時，讓目前選中的那一筆出現在畫面中間 */
+  var cur=host.querySelector('[aria-current="true"]');
+  if(cur){
+    var top=cur.offsetTop-(host.clientHeight/2)+(cur.offsetHeight/2);
+    host.scrollTop=top>0?top:0;
+  }else host.scrollTop=0;
   el('topic-count').textContent=items.length||'';
 }
 
