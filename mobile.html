@@ -144,6 +144,7 @@ ol.pts{margin:0;padding-left:21px;display:flex;flex-direction:column;gap:6px;
   color:var(--ink-3)}
 select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-2);border-radius:9px;
   padding:10px;font-size:calc(14px * var(--fs));width:100%}
+.wide{grid-column:1 / -1}
 .rowbtn{display:flex;gap:8px;padding:0 13px 12px}
 .rowbtn button{flex:1 1 0;border-radius:10px;border:1px solid var(--accent);background:var(--accent);
   color:var(--btn-on);padding:12px 0;font-weight:600;font-size:calc(14px * var(--fs));cursor:pointer}
@@ -217,9 +218,8 @@ select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-
       <div class="fields">
         <div class="field"><label for="f-persona">秘密客身分</label><select id="f-persona"></select></div>
         <div class="field"><label for="f-level">情境難度</label><select id="f-level"></select></div>
-        <div class="field"><label for="f-window">撥入時段</label><select id="f-window"></select></div>
-        <div class="field"><label for="f-search">全題庫搜尋</label>
-          <input type="text" id="f-search" placeholder="拖吊、特休…" inputmode="search"></div>
+        <div class="field wide"><label for="f-search">全題庫搜尋（8,317 題）</label>
+          <input type="text" id="f-search" placeholder="拖吊、特休、房屋稅…" inputmode="search"></div>
       </div>
     </div>
     <div class="sec">
@@ -346,7 +346,16 @@ var TAIL_PROBES=[
 ];
 var CONNECT=['關於您問的部分，','另外，','還有一點要提醒您，','最後補充一下，','另外要注意的是，'];
 
-var S={org:null,item:null,persona:'citizen',level:'L2',win:'peak',fs:1,asked:{},dl:[]};
+/* 撥入時段改為依「現在時間」自動判斷，不需要使用者選 */
+function currentWindow(){
+  var d=new Date(),wd=d.getDay(),m=d.getHours()*60+d.getMinutes();
+  if(wd===0||wd===6)return 'holiday';
+  if(m>=510&&m<630)return 'peak';      /* 08:30–10:30 */
+  if(m>=720&&m<810)return 'noon';      /* 12:00–13:30 */
+  if(m>=1080&&m<1200)return 'night';   /* 18:00–20:00 */
+  return 'off';
+}
+var S={org:null,item:null,persona:'citizen',level:'L2',win:currentWindow(),fs:1,asked:{},dl:[]};
 var LSL='mystery1999m.last';
 function lsGet(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -501,7 +510,7 @@ function renderScript(){
   h+=sec('01','完整對話模擬',S.dl.length+' 句',s);
 
   h+=sec('02','撥號前準備','',
-    '<ul class="prep"><li>時段 <b>'+esc(W.n)+'</b>：'+esc(W.hint)+'</li>'+
+    '<ul class="prep"><li>現在時段 <b>'+esc(W.n)+'</b>（自動判斷）：'+esc(W.hint)+'</li>'+
     '<li>身分 <b>'+esc(p.n)+'</b>：'+esc(p.tone)+'</li>'+
     '<li>秒錶記三個時間點：撥通 → 語音選單結束 → 真人應答。</li>'+
     '<li>備一個假地址（行政區層級即可），不提供真實個資。</li></ul>');
@@ -637,6 +646,7 @@ function copyText(t){
 
 /* ---------- 選題／重繪 ---------- */
 function rebuild(){
+  S.win=currentWindow();
   var item=S.item,L=LEVELS[S.level],p=PERSONAS[S.persona],W=WINDOWS[S.win];
   S.dl=dialogue(item);S.asked={};
   el('b-org').textContent=S.org.org+' ／ '+item.u;
@@ -644,7 +654,7 @@ function rebuild(){
   var lbl=el('rand-lbl');
   if(lbl)lbl.textContent=S.org?(S.org.org.length>4?S.org.org.slice(0,4):S.org.org):'本局處';
   el('b-chips').innerHTML='<span class="chip on">'+esc(L.n)+'</span><span class="chip">'+esc(p.n)+
-    '</span><span class="chip">'+esc(W.n)+'</span><span class="chip">'+esc(item.t)+
+    '</span><span class="chip">現在：'+esc(W.n)+'</span><span class="chip">'+esc(item.t)+
     '</span><span class="chip">點閱 '+num(item.h)+'</span>';
   renderScript();renderProbes();
   lsSet(LSL,{org:S.org.org,q:item.q,persona:S.persona,level:S.level,win:S.win,fs:S.fs});
@@ -681,8 +691,7 @@ function randomPick(orgOnly){
       pk=Object.keys(PERSONAS),wk=Object.keys(WINDOWS);
   S.level=lv[Math.floor(Math.random()*lv.length)];
   S.persona=pk[Math.floor(Math.random()*pk.length)];
-  S.win=wk[Math.floor(Math.random()*wk.length)];
-  el('f-level').value=S.level;el('f-persona').value=S.persona;el('f-window').value=S.win;
+  el('f-level').value=S.level;el('f-persona').value=S.persona;
   el('f-search').value='';
   if(el('f-orgq'))el('f-orgq').value='';
   selectItem(org.org,it.q);
@@ -716,12 +725,10 @@ function fillSelect(id,obj,val){
 function init(){
   fillSelect('f-persona',PERSONAS,S.persona);
   fillSelect('f-level',LEVELS,S.level);
-  fillSelect('f-window',WINDOWS,S.win);
   var last=lsGet(LSL,null);
   if(last){
     if(last.persona&&PERSONAS[last.persona]){S.persona=last.persona;el('f-persona').value=S.persona}
     if(last.level&&LEVELS[last.level]){S.level=last.level;el('f-level').value=S.level}
-    if(last.win&&WINDOWS[last.win]){S.win=last.win;el('f-window').value=S.win}
     if(last.fs){S.fs=last.fs;document.documentElement.style.setProperty('--fs',S.fs)}
   }
   if(last&&last.org)selectItem(last.org,last.q);else selectOrg(ORGS[0].org);
@@ -737,7 +744,6 @@ function init(){
     S.asked[k]=t.checked;t.closest('.probe').classList.toggle('done',t.checked);});
   el('f-persona').addEventListener('change',function(){S.persona=this.value;rebuild()});
   el('f-level').addEventListener('change',function(){S.level=this.value;rebuild()});
-  el('f-window').addEventListener('change',function(){S.win=this.value;rebuild()});
   el('f-search').addEventListener('input',function(){
     var v=this.value.trim();renderOrgs(v&&v.length<5?v:null);renderTopics(v);});
   var ot=null;

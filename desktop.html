@@ -249,7 +249,6 @@ ol.points li{font-size:12.5px;line-height:1.6}
 <div class="controls">
   <div class="field"><label for="f-persona">秘密客身分</label><select id="f-persona"></select></div>
   <div class="field"><label for="f-level">情境難度</label><select id="f-level"></select></div>
-  <div class="field"><label for="f-window">撥入時段</label><select id="f-window"></select></div>
   <div class="field"><label for="f-search">全題庫搜尋</label>
     <input type="text" id="f-search" placeholder="拖吊、特休、房屋稅…" style="width:150px"></div>
   <div class="field"><label>腳本區塊</label>
@@ -394,7 +393,16 @@ var TAIL_PROBES=[
 var CONNECT=['關於您問的部分，','另外，','還有一點要提醒您，','最後補充一下，','另外要注意的是，'];
 
 /* ================= state ================= */
-var S={org:null,item:null,persona:'citizen',level:'L2',win:'peak',
+/* 撥入時段改為依「現在時間」自動判斷，不需要使用者選 */
+function currentWindow(){
+  var d=new Date(),wd=d.getDay(),m=d.getHours()*60+d.getMinutes();
+  if(wd===0||wd===6)return 'holiday';
+  if(m>=510&&m<630)return 'peak';      /* 08:30–10:30 */
+  if(m>=720&&m<810)return 'noon';      /* 12:00–13:30 */
+  if(m>=1080&&m<1200)return 'night';   /* 18:00–20:00 */
+  return 'off';
+}
+var S={org:null,item:null,persona:'citizen',level:'L2',win:currentWindow(),
   fold:{org:false,topic:false},
   openBlk:{'01':false,'02':true,'03':false,'04':false,'05':false,'06':false}};
 var LSU='mystery1999.ui3',LSL='mystery1999.last';
@@ -589,17 +597,18 @@ function lineHTML(o){
 }
 function renderSheet(){
   if(!S.item){el('sh-body').innerHTML='<div class="empty">尚未選題</div>';return}
+  S.win=currentWindow();
   var item=S.item,p=PERSONAS[S.persona],L=LEVELS[S.level],W=WINDOWS[S.win],i,s;
   el('sh-org').textContent=S.org.org+' ／ '+item.u;
   el('sh-q').textContent=item.q;
   el('sh-chips').innerHTML='<span class="chip on">'+esc(L.n)+'</span><span class="chip">'+esc(p.n)+
-    '</span><span class="chip">'+esc(W.n)+'</span><span class="chip">'+esc(item.t)+
+    '</span><span class="chip">現在：'+esc(W.n)+'</span><span class="chip">'+esc(item.t)+
     '</span><span class="chip">點閱 '+num(item.h)+'</span>';
 
   var kp=keyPoints(item.a),pr=probesFor(item),dl=dialogue(item),h='';
 
   h+=blk('01','撥號前準備','4 項',
-    '<ul class="prep"><li>時段 <b>'+esc(W.n)+'</b>：'+esc(W.hint)+'</li>'+
+    '<ul class="prep"><li>現在時段 <b>'+esc(W.n)+'</b>（自動判斷）：'+esc(W.hint)+'</li>'+
     '<li>身分 <b>'+esc(p.n)+'</b>：'+esc(p.tone)+'。全程維持設定，不要露出內部用語。</li>'+
     '<li>秒錶記三個時間點：撥通 → 語音選單結束 → 真人應答。</li>'+
     '<li>備一個假地址（用實際行政區即可），不提供真實個資；錄音與告知程序依貴中心稽核規定辦理。</li></ul>');
@@ -787,11 +796,10 @@ function randomPick(){
   for(i=0;i<ORGS.length;i++){acc+=ORGS[i].total;if(r<=acc){org=ORGS[i];break}}
   var it=org.items[Math.floor(Math.random()*org.items.length)];
   var lv=['L1','L1','L1','L2','L2','L2','L2','L3','L3','L4'],
-      pk=Object.keys(PERSONAS),wk=Object.keys(WINDOWS);
+      pk=Object.keys(PERSONAS);
   S.level=lv[Math.floor(Math.random()*lv.length)];
   S.persona=pk[Math.floor(Math.random()*pk.length)];
-  S.win=wk[Math.floor(Math.random()*wk.length)];
-  el('f-level').value=S.level;el('f-persona').value=S.persona;el('f-window').value=S.win;
+  el('f-level').value=S.level;el('f-persona').value=S.persona;
   el('f-search').value='';
   selectItem(org.org,it.q);
   flash('said','抽出：'+org.org+' · '+S.level);
@@ -809,7 +817,6 @@ function init(){
   el('m-date').textContent=DATA.generated;
   fillSelect('f-persona',PERSONAS,S.persona);
   fillSelect('f-level',LEVELS,S.level);
-  fillSelect('f-window',WINDOWS,S.win);
 
   var ui=lsGet(LSU,null);
   if(ui){if(ui.fold)S.fold=ui.fold;if(ui.openBlk)S.openBlk=ui.openBlk}
@@ -817,7 +824,6 @@ function init(){
   if(last){
     if(last.persona&&PERSONAS[last.persona]){S.persona=last.persona;el('f-persona').value=S.persona}
     if(last.level&&LEVELS[last.level]){S.level=last.level;el('f-level').value=S.level}
-    if(last.win&&WINDOWS[last.win]){S.win=last.win;el('f-window').value=S.win}
   }
   layout();
   if(last&&last.org)selectItem(last.org,last.q);else selectOrg(ORGS[0].org);
@@ -829,7 +835,6 @@ function init(){
   el('sh-body').addEventListener('toggle',onToggle,true);
   el('f-persona').addEventListener('change',function(){S.persona=this.value;renderSheet();remember()});
   el('f-level').addEventListener('change',function(){S.level=this.value;renderSheet();remember()});
-  el('f-window').addEventListener('change',function(){S.win=this.value;renderSheet();remember()});
   el('f-search').addEventListener('input',function(){
     var v=this.value.trim();renderOrgs(v&&v.length<5?v:null);renderTopics(v);});
   el('btn-random').addEventListener('click',randomPick);
