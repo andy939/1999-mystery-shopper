@@ -152,9 +152,10 @@ ol.pts{margin:0;padding-left:21px;display:flex;flex-direction:column;gap:6px;
 .findbox{padding:8px 12px;background:var(--surface);border-top:1px solid var(--line);
   display:flex;gap:8px;align-items:stretch}
 .findbox input{flex:1 1 auto}
-.findrand{flex:none;width:46px;background:var(--accent);color:var(--btn-on);border:1px solid var(--accent);
+.findrand{flex:none;padding:0 11px;white-space:nowrap;font-weight:600;background:var(--accent);color:var(--btn-on);border:1px solid var(--accent);
   border-radius:9px;font-size:17px;cursor:pointer;line-height:1}
 .findrand:active{background:var(--accent-2)}
+.findrand #rand-lbl{font-size:calc(12.5px * var(--fs));font-family:var(--sans)}
 .btn-goall{background:var(--accent);color:var(--btn-on);border:1px solid var(--accent);
   border-radius:9px;padding:10px 14px;font-size:calc(13.5px * var(--fs));font-weight:600;cursor:pointer}
 .picklist{min-height:0;overflow-y:auto;overflow-x:hidden;position:relative;
@@ -170,7 +171,7 @@ select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-
 .rowbtn button{flex:1 1 0;border-radius:10px;border:1px solid var(--accent);background:var(--accent);
   color:var(--btn-on);padding:12px 0;font-weight:600;font-size:calc(14px * var(--fs));cursor:pointer}
 .rowbtn button.ghost{background:transparent;color:var(--accent);border-color:var(--line-2)}
-.rowbtn.three button{padding:11px 3px;font-size:calc(13px * var(--fs));white-space:nowrap;
+.rowbtn.three button{padding:11px 6px;font-size:calc(13px * var(--fs));white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
 .rowbtn.three #rand-lbl{font-size:calc(12.5px * var(--fs))}
 
@@ -232,9 +233,8 @@ select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-
   <div class="view" id="v-pick">
     <div class="pickhead">
       <div class="rowbtn three">
-        <button id="b-rand-org">🎲 <span id="rand-lbl">本局處</span>抽</button>
-        <button class="ghost" id="b-random2">🎲 全隨機</button>
-        <button class="ghost" id="b-copy">複製腳本</button>
+        <button id="b-random2">🎲 全隨機抽一題</button>
+        <button class="ghost" id="b-copy">複製整份腳本</button>
       </div>
       <div class="fields">
         <div class="field"><label for="f-persona">秘密客身分</label><select id="f-persona"></select></div>
@@ -248,7 +248,8 @@ select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-
       <div class="findbox">
         <input type="text" id="f-find" placeholder="找局處或題目，例如 勞動、拖吊"
                inputmode="search" autocomplete="off">
-        <button class="findrand" id="b-rand-here" title="依上面的身分與難度，在這個機關裡隨機抽一題">🎲</button>
+        <button class="findrand" id="b-rand-here"
+                title="依上面的身分與難度，在這個局處內隨機抽一題">🎲 <span id="rand-lbl">本局處</span></button>
       </div>
     </div>
     <div class="picklist" id="pick-list">
@@ -911,7 +912,6 @@ function init(){
     if(!S.org){toast('請先選一個局處');return}
     randomPick(true);
   }
-  el('b-rand-org').addEventListener('click',randHere);
   el('b-rand-here').addEventListener('click',randHere);
   el('b-copy').addEventListener('click',function(){copyText(plainScript())});
   el('b-reroll').addEventListener('click',function(){
