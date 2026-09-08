@@ -208,6 +208,7 @@ select,input[type=text]{background:var(--surface-2);border:1px solid var(--line-
   <div class="bar">
     <div class="bar-r1">
       <span class="org" id="b-org">—</span>
+      <button class="iconbtn" id="b-reroll" title="換一種說法">🔄</button>
       <button class="iconbtn" id="b-fs" title="字級">A±</button>
       <button class="iconbtn" id="b-wake" title="螢幕不休眠">☀︎</button>
       <a class="iconbtn call" id="b-call" href="tel:1999">撥 1999</a>
@@ -298,6 +299,50 @@ function ensureOrg(org,cb){
     if(typeof toast==='function')toast('答覆載入失敗，請檢查網路後重新整理');
     else if(typeof flash==='function')flash('said','答覆載入失敗');
   });
+}
+/* ---------- 話術變體池（規則式，離線，可用種子重現） ---------- */
+function mulberry32(a){return function(){
+  a|=0;a=a+0x6D2B79F5|0;
+  var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;
+  return ((t^t>>>14)>>>0)/4294967296;};}
+var RND=mulberry32(1);
+function pick(arr){return arr[Math.floor(RND()*arr.length)]}
+function shuffled(arr){
+  var a=arr.slice(),i,j,t;
+  for(i=a.length-1;i>0;i--){j=Math.floor(RND()*(i+1));t=a[i];a[i]=a[j];a[j]=t}
+  return a;
+}
+var DISTRICTS=['信義區','內湖區','萬華區','士林區','大同區','文山區','中山區','北投區'];
+var WHENS=['昨天下午','上個禮拜','前幾天','今天早上','上個月'];
+var VAR={
+  vague:['我不太會講，跟「{t}」有關的事情','有件事我不確定是不是你們管的，是關於{t}',
+         '我要問一個{t}的問題，可是我不太會形容','就是{t}那一類的事情，我講不太清楚'],
+  pause:['（停頓 2 秒，不要補充細節）','（故意停住，等對方問）','（不講地點也不講時間，等他問）',
+         '（講完就安靜，看他會不會釐清）'],
+  confirm:['好的，我跟您確認一下，您是想問「{q}」這部分，對嗎？',
+           '我跟您重複一次，您要問的是「{q}」，是嗎？',
+           '了解，所以您的問題是「{q}」，我這樣理解對嗎？',
+           '我先跟您核對一下，您想了解的是「{q}」，沒錯吧？'],
+  ask2:['方便先跟您確認一下時間跟地點嗎？','可以先給我您的地址或車號嗎？',
+        '請問是本市哪一區的狀況？','請問這件事是什麼時候發生的？'],
+  lead:['關於您問的部分，','這部分是這樣的，','我跟您說明一下，','關於這件事，'],
+  more:['另外，','還有一點要提醒您，','另外要注意的是，','再補充一點，','另外還有，'],
+  recap:['沒問題，我再幫您整理一次重點：','好的，重點是這樣：','我幫您歸納一下：',
+         '我再跟您講一次重點：'],
+  detail:['另外還有一項細節：','還有一點您可能需要知道：','另外要補充的是：'],
+  ask3:['請問還有其他需要為您服務的地方嗎？','還有其他問題需要為您服務嗎？',
+        '請問還有其他需要協助的地方嗎？'],
+  bye:['謝謝您的來電，祝您順心，再見。','謝謝您的來電，再見。',
+       '感謝您的來電，祝您有美好的一天，再見。'],
+  understood:['好，我大概懂了。','嗯，那我知道了。','好，我聽懂了。','嗯，大概了解了。'],
+  noThanks:['沒有了，謝謝。','沒有了，謝謝你。','就這樣，謝謝。'],
+  interject:['（專員講到一半時打斷）等一下，你先聽我講。','（插話）你等一下，我還沒講完。'],
+  unclear:['你可以講慢一點嗎？我沒聽清楚。','那個詞我不太懂，可以換句話說嗎？',
+           '你剛才那句可以再講一次嗎？']
+};
+function fill(t,m){
+  return String(t).replace(/\{(\w)\}/g,function(_,k){return m&&m[k]!=null?m[k]:''});
 }
 var PERSONAS={
   citizen:{n:'一般市民',tone:'語速平穩、用詞平實，不主動透露自己懂法規',
@@ -392,7 +437,8 @@ function currentWindow(){
   return 'off';
 }
 var S={org:null,item:null,persona:'citizen',level:'L2',win:currentWindow(),fs:1,
-  asked:{},dl:[],pickMode:'org'};
+  asked:{},dl:[],pr:null,pickMode:'org',
+  seed:1000+Math.floor(Math.random()*9000)};
 var LSL='mystery1999m.last';
 function lsGet(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -448,13 +494,18 @@ function relatedFor(item){
 function cite(f){return f.u+'〈'+(f.q.length>18?f.q.slice(0,18)+'…':f.q)+'〉'+(f.d?' '+f.d:'')+
   (f.sid?' #'+f.sid.slice(0,8):'')}
 function probesFor(item){
-  var txt=item.q+' '+item.a,sn=sentences(item.a),out=[],i,j;
-  for(i=0;i<PROBES.length&&out.length<4;i++){
+  var txt=item.q+' '+item.a,sn=sentences(item.a),hit=[],out=[],i,j;
+  for(i=0;i<PROBES.length;i++){
     if(!PROBES[i][0].test(txt))continue;
     var ans='';
     for(j=0;j<sn.length;j++)if(PROBES[i][0].test(sn[j])){ans=snip(sn[j],PROBES[i][0],120);break}
-    out.push({q:PROBES[i][1],why:PROBES[i][2],ans:ans,src:item,kind:'主題'});
+    var q=PROBES[i][1].replace('信義區',pick(DISTRICTS));
+    hit.push({q:q,why:PROBES[i][2],ans:ans,src:item,kind:'主題'});
   }
+  /* 命中的題目洗牌後取 3–4 題，所以同一主題每次的追問組合不同 */
+  hit=shuffled(hit);
+  var take=hit.length>3?(3+Math.floor(RND()*2)):hit.length;
+  for(i=0;i<take;i++)out.push(hit[i]);
   if(out.length<3)out.push({q:'這件事如果我不方便自己來辦，還有沒有其他管道？',
     why:'替代管道是否主動提供',ans:'',src:item,kind:'主題'});
   var rel=relatedFor(item);
@@ -463,8 +514,9 @@ function probesFor(item){
     out.push({q:'另外順便問一下，'+rel[i].q,why:'延伸題：同業務相鄰知識，測知識廣度與轉接判斷',
       ans:rs.length?trim(rs[0],120):'',src:rel[i],kind:'延伸'});
   }
-  out.push({q:TAIL_PROBES[0][0],why:TAIL_PROBES[0][1],ans:'',src:null,kind:'服務行為'});
-  out.push({q:TAIL_PROBES[1][0],why:TAIL_PROBES[1][1],ans:'',src:null,kind:'服務行為'});
+  var tails=shuffled(TAIL_PROBES);
+  out.push({q:tails[0][0],why:tails[0][1],ans:'',src:null,kind:'服務行為'});
+  if(RND()<0.6)out.push({q:tails[1][0],why:tails[1][1],ans:'',src:null,kind:'服務行為'});
   return out;
 }
 function crossOrgFor(item){
@@ -479,8 +531,8 @@ function openingLines(item,level){
   var p=PERSONAS[S.persona],lines=[{who:'客',t:p.open}];
   if(level==='L1'){lines.push({who:'客',t:'我想請問：'+item.q});}
   else if(level==='L2'){
-    lines.push({who:'客',t:'就是…那個…我不太會講，跟「'+item.t+'」有關的事情。大概就是'+shortQ(item.q)+
-      '這樣，<em>（停頓 2 秒，不要補充細節）</em>你聽得懂我的意思嗎？'});
+    lines.push({who:'客',t:'就是…那個…'+fill(pick(VAR.vague),{t:item.t})+'。大概就是'+
+      shortQ(item.q)+'這樣，<em>'+pick(VAR.pause)+'</em>你聽得懂我的意思嗎？'});
   }else if(level==='L3'){
     lines.push({who:'客',t:'我上個禮拜就打過一次 1999 了，到現在還是沒人跟我講清楚。<em>（語氣不耐但不辱罵）</em>'});
     lines.push({who:'客',t:'我要問的是：'+item.q+' 這到底是誰在管？'});
@@ -493,18 +545,20 @@ function openingLines(item,level){
   }
   return lines;
 }
-function dialogue(item){
-  var p=PERSONAS[S.persona],kp=keyPoints(item.a),pr=probesFor(item),L=[],i;
+function dialogue(item,pr){
+  var p=PERSONAS[S.persona],kp=keyPoints(item.a),L=[],i;
+  if(!pr)pr=probesFor(item);
   L.push({who:'員',t:'您好，1999 臺北市民當家熱線，我是專員 ○○○，很高興為您服務。',
     mark:'開場三要素'});
   L.push({who:'客',t:p.open});
   var ol=openingLines(item,S.level);
   for(i=1;i<ol.length;i++)L.push({who:'客',t:ol[i].t});
-  L.push({who:'員',t:'好的，我跟您確認一下，您是想問「'+shortQ(item.q)+
-    '」這部分，對嗎？方便先跟您確認一下時間跟地點嗎？',mark:'需求確認'});
+  L.push({who:'員',t:fill(pick(VAR.confirm),{q:shortQ(item.q)})+pick(VAR.ask2),
+    mark:'需求確認'});
   L.push({who:'客',t:'對，就是這個。'+p.back});
   var used=Math.min(kp.length,4);
-  for(i=0;i<used;i++)L.push({who:'員',t:CONNECT[i]+trim(kp[i],120),
+  var leads=[pick(VAR.lead)].concat(shuffled(VAR.more));
+  for(i=0;i<used;i++)L.push({who:'員',t:leads[i%leads.length]+trim(kp[i],120),
     mark:i===0?'答詢正確性':'',cite:'本題 FAQ 要點 '+(i+1)});
   if(p.mid)L.push({who:'客',t:p.mid,mark:'插話：測不被激怒、能否把話題導回'});
   L.push({who:'客',t:pr[0].q,mark:'追問 1'});
@@ -516,13 +570,13 @@ function dialogue(item){
       mark:pr[1].ans?'應答出這段':'轉介與回電承諾',cite:pr[1].ans?cite(pr[1].src):''});
   }
   L.push({who:'客',t:p.ack,mark:'測耐心'});
-  L.push({who:'員',t:'沒問題，我再幫您整理一次重點：'+trim(kp[0],60)+
+  L.push({who:'員',t:pick(VAR.recap)+trim(kp[0],60)+
     (kp[1]?'；還有'+trim(kp[1],60):'')+'。',mark:'摘要複述'});
-  if(kp.length>used)L.push({who:'員',t:'另外還有一項細節：'+trim(kp[used],110),mark:'完整度'});
-  L.push({who:'客',t:'好，我大概懂了。<em>（不要主動道謝，看專員是否自己問「還有其他需要嗎」）</em>'});
-  L.push({who:'員',t:'請問還有其他需要為您服務的地方嗎？',mark:'結案確認'});
-  L.push({who:'客',t:'沒有了，謝謝。'});
-  L.push({who:'員',t:'謝謝您的來電，祝您順心，再見。<em>（記錄是否等民眾先掛機）</em>',mark:'結束語'});
+  if(kp.length>used)L.push({who:'員',t:pick(VAR.detail)+trim(kp[used],110),mark:'完整度'});
+  L.push({who:'客',t:pick(VAR.understood)+'<em>（不要主動道謝，看專員是否自己問「還有其他需要嗎」）</em>'});
+  L.push({who:'員',t:pick(VAR.ask3),mark:'結案確認'});
+  L.push({who:'客',t:pick(VAR.noThanks)});
+  L.push({who:'員',t:pick(VAR.bye)+'<em>（記錄是否等民眾先掛機）</em>',mark:'結束語'});
   return L;
 }
 
@@ -581,7 +635,7 @@ function renderScript(){
 
 /* ---------- 追問頁 ---------- */
 function renderProbes(){
-  var pr=probesFor(S.item),h='<div class="secin">',i;
+  var pr=S.pr||probesFor(S.item),h='<div class="secin">',i;
   for(i=0;i<pr.length;i++){
     h+='<div class="probe" data-p="'+i+'">'+
       '<div class="top"><span class="n">追問 '+(i+1)+'</span><span class="kind">'+esc(pr[i].kind)+
@@ -679,14 +733,14 @@ function unem(t){return String(t).replace(/<em>/g,'').replace(/<\/em>/g,'')}
 function plainScript(){
   var item=S.item,p=PERSONAS[S.persona],L=LEVELS[S.level],W=WINDOWS[S.win],i;
   var out=['1999 秘密客測試腳本','局處：'+S.org.org+'（'+item.u+'）','題目：'+item.q,
-    '情境：'+L.n+'｜身分：'+p.n+'｜時段：'+W.n,
+    '情境：'+L.n+'｜身分：'+p.n+'｜時段：'+W.n+'｜腳本編號 #'+S.seed,
     (p.limit?'界線：'+p.limit:''),'','【完整對話模擬】'];
   for(i=0;i<S.dl.length;i++){
     out.push(S.dl[i].who+'：'+unem(S.dl[i].t)+(S.dl[i].mark?'　〔'+S.dl[i].mark+'〕':''));
     if(S.dl[i].cite)out.push('    ↳ 依據：'+S.dl[i].cite);
   }
   out.push('','【追問清單】');
-  var pr=probesFor(item);
+  var pr=S.pr||probesFor(item);
   for(i=0;i<pr.length;i++){
     out.push((i+1)+'. 「'+pr[i].q+'」（'+pr[i].kind+'）');
     out.push('   測什麼：'+pr[i].why);
@@ -718,13 +772,16 @@ function copyText(t){
 function rebuild(){
   S.win=currentWindow();
   var item=S.item,L=LEVELS[S.level],p=PERSONAS[S.persona],W=WINDOWS[S.win];
-  S.dl=dialogue(item);S.asked={};
+  RND=mulberry32(S.seed);
+  S.pr=probesFor(item);
+  S.dl=dialogue(item,S.pr);S.asked={};
   el('b-org').textContent=S.org.org+' ／ '+item.u;
   el('b-q').textContent=item.q;
   var lbl=el('rand-lbl');
   if(lbl)lbl.textContent=S.org?(S.org.org.length>4?S.org.org.slice(0,4):S.org.org):'本局處';
   el('b-chips').innerHTML='<span class="chip on">'+esc(L.n)+'</span><span class="chip">'+esc(p.n)+
-    '</span><span class="chip">現在：'+esc(W.n)+'</span><span class="chip">'+esc(item.t)+
+    '</span><span class="chip">現在：'+esc(W.n)+'</span><span class="chip" id="chip-seed" style="cursor:pointer;border-color:var(--accent);color:var(--accent)" title="點我輸入編號重現同一份腳本">腳本 #'+S.seed+
+    '</span><span class="chip">'+esc(item.t)+
     '</span><span class="chip">點閱 '+num(item.h)+'</span>';
   renderScript();renderProbes();
   lsSet(LSL,{org:S.org.org,q:item.q,persona:S.persona,level:S.level,win:S.win,fs:S.fs});
@@ -844,6 +901,8 @@ function init(){
     if(!S.org){toast('請先選一個局處');return}
     randomPick(true);});
   el('b-copy').addEventListener('click',function(){copyText(plainScript())});
+  el('b-reroll').addEventListener('click',function(){
+    S.seed=1000+Math.floor(Math.random()*9000);rebuild();toast('換了說法 · 腳本 #'+S.seed);});
   el('b-wake').addEventListener('click',toggleWake);
   el('b-fs').addEventListener('click',function(){
     var order=[1,1.12,1.26,.9],i=order.indexOf(S.fs);
@@ -852,6 +911,13 @@ function init(){
     lsSet(LSL,{org:S.org.org,q:S.item.q,persona:S.persona,level:S.level,win:S.win,fs:S.fs});
     toast('字級 '+Math.round(S.fs*100)+'%');});
 
+  el('b-chips').addEventListener('click',function(e){
+    if(!e.target.closest('#chip-seed'))return;
+    var v=window.prompt('輸入腳本編號可重現同一份腳本（1000–9999）：',S.seed);
+    if(v===null)return;
+    v=parseInt(v,10);
+    if(!v||v<1)return;
+    S.seed=v;rebuild();});
   var tb=document.querySelectorAll('.tabs button[data-v]'),i;
   for(i=0;i<tb.length;i++)tb[i].addEventListener('click',function(){
     showView(this.getAttribute('data-v'))});
