@@ -135,13 +135,16 @@ details.blk[open] > summary .mk{color:var(--accent)}
 
 /* 逐字稿 */
 .line{display:grid;grid-template-columns:40px minmax(0,1fr);gap:9px;padding:4px 0}
-.who{font-family:var(--mono);font-size:10px;color:var(--btn-on);background:var(--ink-2);border-radius:3px;
+.who{font-family:var(--mono);font-size:10px;color:var(--btn-on);background:var(--ink-3);border-radius:3px;
   height:18px;display:grid;place-items:center;margin-top:3px;letter-spacing:.06em}
-.who.me{background:var(--accent)}
+.who.me{background:var(--good)}
 .who.gap{background:transparent;color:var(--ink-3);border:1px dashed var(--line-2)}
 .say{border-left:2px solid var(--line-2);padding-left:11px;font-size:13.5px;line-height:1.7}
-.line.agent .say{border-left-color:var(--good);background:var(--good-soft);border-radius:0 5px 5px 0;
-  padding:3px 10px 3px 11px}
+/* 客＝你要照著念的台詞：綠底突顯；員＝正解版：白底不搶眼 */
+.line:not(.agent) .say{border-left-color:var(--good);background:var(--good-soft);
+  border-radius:0 5px 5px 0;padding:4px 10px 4px 11px;font-weight:500}
+.line.agent .say{border-left-color:var(--line-2);background:var(--surface);color:var(--ink-2);
+  padding:2px 0 2px 11px}
 .say em{font-style:normal;color:var(--warn);font-size:12px;font-family:var(--mono)}
 .mark{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--good);border:1px solid var(--good);
   border-radius:3px;padding:0 4px;margin-left:6px;vertical-align:2px;white-space:nowrap}
@@ -695,8 +698,8 @@ function renderSheet(){
     '<li>備一個假地址（用實際行政區即可），不提供真實個資；錄音與告知程序依貴中心稽核規定辦理。</li></ul>');
 
   s='<p style="margin:0 0 8px;font-size:12.5px;color:var(--ink-2)">'+
-    '藍色是<b>你要念的台詞</b>，綠色是<b>專員「正解版」應該講出來的內容</b>（由本題標準答案組成）——'+
-    '照著對，落差就是缺口。</p>';
+    '綠底「客」是<b>你要照著念的台詞</b>，白底「員」是<b>專員正解版應該講出來的內容</b>'+
+    '（由本題標準答案組成）—— 照著對，落差就是缺口。</p>';
   for(i=0;i<dl.length;i++)s+=lineHTML(dl[i]);
   s+='<div class="watch"><b>本情境要測出什麼：</b>'+esc(L.test)+'<br><b>情境設計：</b>'+esc(L.design)+'</div>';
   h+=blk('02','完整對話模擬（正常情境）',dl.length+' 句',s);
