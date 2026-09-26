@@ -911,7 +911,7 @@ function copy(text,msg){
 
 
 /* ================= 智能客服測題 ================= */
-/* 題源：data/cstest.json（人工標竿＋AI 出題，含難度、題型、應答要點）；不夠時用規則模板補。
+/* 題源：cstest.json（放在 data/ 外面，因為爬蟲同步會整個重建 data/）（人工標竿＋AI 出題，含難度、題型、應答要點）；不夠時用規則模板補。
    每題附標準答案（對應 FAQ 原文），匯出 Excel 後人工比對智能客服回答。 */
 var CS={bank:null,set:[],sidMap:null,open:{}};
 var CS_TYPES=['口語情境','多意圖','錯誤前提','用詞落差','條件判斷','時效','無答案'];
@@ -939,7 +939,7 @@ function csSidMap(){
 }
 function csLoadBank(cb){
   if(CS.bank)return cb();
-  fetch('data/cstest.json').then(function(r){if(!r.ok)throw 0;return r.json()})
+  fetch('cstest.json').then(function(r){if(!r.ok)throw 0;return r.json()})
     .then(function(b){CS.bank=b;cb()},function(){CS.bank=[];cb()});
 }
 function csOpts(){
