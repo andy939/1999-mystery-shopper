@@ -34,24 +34,24 @@ h1{font-size:16px;color:#fff}
 /* 左側分區＋右側內容，整個畫面固定高度，只有卡片內部捲動 */
 .layout{flex:1;min-height:0;width:100%;max-width:1320px;margin:0 auto;padding:14px 16px;
         display:grid;grid-template-columns:196px minmax(0,1fr);gap:16px}
-.side{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;
+.side{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px;
       align-self:start;max-height:100%;overflow:auto}
 .side button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;
-      border:0;border-radius:8px;padding:9px 12px;margin:0;font:inherit;font-size:13.5px;
+      border:0;border-radius:7px;padding:5px 10px;margin:0;font:inherit;font-size:13.5px;line-height:1.5;
       font-weight:400;color:var(--ink);cursor:pointer}
 .side button i{font-style:normal;width:18px;text-align:center;flex:0 0 auto}
 .side button .k{margin-left:auto;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
 .side button:hover{background:var(--hover)}
 .side button.on{background:var(--navy);color:#fff;font-weight:600}
 .side button.on .k{color:rgba(255,255,255,.8)}
-.side .grp{font-size:11.5px;color:var(--dim);padding:10px 12px 3px;font-weight:600;letter-spacing:.05em}
-.side button.fold{color:var(--dim);font-size:16px;padding:2px 12px 6px;line-height:1}
+.side .grp{font-size:11.5px;color:var(--dim);padding:6px 10px 1px;font-weight:600;letter-spacing:.05em}
+.side button.fold{color:var(--dim);font-size:16px;padding:0 10px 2px;line-height:1}
 .layout.fold{grid-template-columns:52px minmax(0,1fr)}
 .layout.fold .side button span,.layout.fold .side .grp,.layout.fold .side .k,
 .layout.fold .sidenote{display:none}
-.layout.fold .side button[data-page]{justify-content:center;padding:9px 4px}
-.sidenote{font-size:12px;color:var(--dim);padding:10px 12px 4px;line-height:1.6;
-      border-top:1px solid var(--line);margin-top:8px}
+.layout.fold .side button[data-page]{justify-content:center;padding:5px 4px}
+.sidenote{font-size:12px;color:var(--dim);padding:8px 10px 2px;line-height:1.55;
+      border-top:1px solid var(--line);margin-top:6px}
 .sidenote b{color:var(--ink);font-weight:600}
 
 main{min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
