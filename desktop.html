@@ -219,7 +219,6 @@ td.nw{white-space:nowrap}
   <button class="fold" id="fold" title="收合／展開選單">‹</button>
   <div class="grp">準備</div>
   <button data-page="pick"><i>🎯</i><span>選題抽題</span></button>
-  <button data-page="prep"><i>📋</i><span>撥號前準備</span></button>
   <div class="grp">通話中</div>
   <button data-page="dlg"><i>💬</i><span>對話腳本</span><b class="k" id="k-dlg"></b></button>
   <button data-page="probe"><i>❓</i><span>追問清單</span><b class="k" id="k-probe"></b></button>
@@ -272,8 +271,6 @@ td.nw{white-space:nowrap}
     </div>
   </section>
 
-  <section data-page="prep" hidden><div class="card fill"><h2>撥號前準備 <span>撥出去之前看一遍</span></h2>
-    <div class="scroll" id="p-prep"></div><div class="pager"></div></div></section>
   <section data-page="dlg" hidden><div class="card fill"><h2>對話腳本 <span>完整對話模擬（正常情境）</span><span class="tail" id="t-dlg"></span></h2>
     <div class="scroll" id="p-dlg"></div><div class="pager"></div></div></section>
   <section data-page="probe" hidden><div class="card fill"><h2>追問清單 <span>依序問，每題等對方講完；問過的打勾</span><span class="tail" id="t-probe"></span></h2>
@@ -624,7 +621,7 @@ function flash(id,msg){var e=el(id);if(!e)return;e.textContent=msg;
 function toast(m){flash('said',m)}
 
 /* ================= 分頁 ================= */
-var PAGES=[['pick','選題抽題'],['prep','撥號前準備'],['dlg','對話腳本'],['probe','追問清單'],
+var PAGES=[['pick','選題抽題'],['dlg','對話腳本'],['probe','追問清單'],
   ['key','標準答案'],['src','FAQ 來源'],['alt','換難度再撥']];
 function goPage(key){
   S.page=key;
@@ -738,7 +735,7 @@ function randomPick(orgOnly){
     S.persona=pk[Math.floor(Math.random()*pk.length)];
   }
   el('f-level').value=S.level;el('f-persona').value=S.persona;el('f-search').value='';
-  selectItem(org.org,it.q,'prep');
+  selectItem(org.org,it.q,'dlg');
   flash('said',(orgOnly?'依設定抽出：':'抽出：')+org.org+' · '+PERSONAS[S.persona].n+' · '+S.level);
 }
 
@@ -759,19 +756,6 @@ function rebuild(){
     '<span class="badge gray">'+esc(item.t)+'</span><span class="badge gray">點閱 '+num(item.h)+'</span>';
   el('sidenote').innerHTML='目前題目<br><b>'+esc(shortQ(item.q))+'</b><br>'+esc(S.org.org)+' · '+esc(S.level);
 
-  /* 撥號前準備 */
-  s='<div class="grid">'+
-    '<div class="box"><h4>現在時段（自動判斷）</h4><p><b>'+esc(W.n)+'</b><br>'+esc(W.hint)+'</p></div>'+
-    '<div class="box"><h4>扮演身分</h4><p><b>'+esc(p.n)+'</b><br>'+esc(p.tone)+'。全程維持設定，不要露出內部用語。</p></div>'+
-    '<div class="box"><h4>情境難度</h4><p><b>'+esc(L.n)+'</b><br>'+esc(L.design)+'</p></div>'+
-    '<div class="box"><h4>這通要測出什麼</h4><p>'+esc(L.test)+'</p></div>'+
-    (p.limit?'<div class="box warn"><h4>界線（務必遵守）</h4><p>'+esc(p.limit)+'</p></div>':'')+
-    '</div><div class="box" style="margin-top:14px"><h4>撥號步驟</h4><ol class="steps">'+
-    '<li>備好秒錶，記三個時間點：撥通 → 語音選單結束 → 真人應答。</li>'+
-    '<li>備一個假地址（用實際行政區即可），不提供真實個資；錄音與告知程序依中心稽核規定辦理。</li>'+
-    '<li>開「對話腳本」頁，照綠底台詞念；專員講完再切「追問清單」逐題問。</li>'+
-    '<li>掛斷後到「標準答案」「FAQ 來源」對照專員說法的落差。</li></ol></div>';
-  el('p-prep').innerHTML=s;
 
   /* 對話腳本 */
   s='<p class="legend"><b>綠底「客」＝你要照著念的台詞</b>；白底「員」＝專員正解版（由本題標準答案組成），照著對，落差就是缺口。</p>';
@@ -846,8 +830,6 @@ function plainScript(){
   var item=S.item,p=PERSONAS[S.persona],L=LEVELS[S.level],W=WINDOWS[S.win],i,j;
   var out=['1999 秘密客測試腳本','局處：'+S.org.org+'（'+item.u+'）','題目：'+item.q,
     '情境：'+L.n+'｜身分：'+p.n+'｜時段：'+W.n+'｜腳本編號 #'+S.seed,'',
-    '【撥號前準備】','・'+W.hint,'・身分設定：'+p.tone,(p.limit?'・界線：'+p.limit:''),
-    '・記錄撥通、語音選單結束、真人應答三個時間點','・準備假地址，不提供真實個資','',
     '【完整對話模擬（正常情境）】※「員」為由標準答案組成的正解版，用來比對落差'];
   for(i=0;i<S.dl.length;i++){
     out.push(S.dl[i].who+'：'+unem(S.dl[i].t)+(S.dl[i].mark?'　〔'+S.dl[i].mark+'〕':''));
@@ -906,7 +888,7 @@ function init(){
     if(last.persona&&PERSONAS[last.persona]){S.persona=last.persona;el('f-persona').value=S.persona}
     if(last.level&&LEVELS[last.level]){S.level=last.level;el('f-level').value=S.level}
   }
-  var page=ui&&ui.page?ui.page:'pick';
+  var page=ui&&ui.page&&el('p-'+ui.page)?ui.page:'pick';
   goPage(page);
   if(last&&last.org)selectItem(last.org,last.q);else selectItem(ORGS[0].org,null);
 
@@ -928,7 +910,7 @@ function init(){
   el('topic-list').addEventListener('click',function(e){
     var b=e.target.closest('[data-q]');
     if(b){S.seed=1000+Math.floor(Math.random()*9000);
-      selectItem(b.getAttribute('data-org'),b.getAttribute('data-q'),'prep');}});
+      selectItem(b.getAttribute('data-org'),b.getAttribute('data-q'),'dlg');}});
   el('p-probe').addEventListener('change',function(e){
     var k=e.target.getAttribute('data-ask');if(k===null)return;
     S.asked[k]=e.target.checked;e.target.closest('.probe').classList.toggle('done',e.target.checked);});
@@ -945,7 +927,7 @@ function init(){
     S.seed=1000+Math.floor(Math.random()*9000);rebuild();flash('said','換了說法 · 腳本 #'+S.seed);});
   el('btn-copy').addEventListener('click',function(){copy(plainScript(),'整份腳本已複製')});
   el('btn-print').addEventListener('click',function(){window.print()});
-  /* 鍵盤：Alt+1～7 切分頁 */
+  /* 鍵盤：Alt+1～6 切分頁 */
   document.addEventListener('keydown',function(e){
     if(!e.altKey)return;var n=parseInt(e.key,10);
     if(n>=1&&n<=PAGES.length){e.preventDefault();goPage(PAGES[n-1][0]);}});
