@@ -837,13 +837,6 @@ function plainScript(){
       '   正解應含：'+(S.pr[i].ans||'標準答案未載明——聽專員是否誠實說「確認後回電」'),
       '   依據 FAQ：'+(S.pr[i].src?cite(S.pr[i].src):'無（純服務行為觀察題）'));
   }
-  out.push('','【情境變化：換難度的開場替換句】');
-  var keys=['L1','L2','L3','L4'];
-  for(i=0;i<keys.length;i++){
-    var ol=openingLines(item,keys[i]);
-    out.push('◆ '+LEVELS[keys[i]].n+'（'+LEVELS[keys[i]].test+'）');
-    for(j=1;j<ol.length;j++)out.push('   客：'+unem(ol[j].t));
-  }
   out.push('','【標準答案全要點（對照用）】');
   var kp=keyPoints(item.a);
   for(i=0;i<kp.length;i++)out.push((i+1)+'. '+kp[i]);
