@@ -225,7 +225,6 @@ td.nw{white-space:nowrap}
   <div class="grp">通話後對照</div>
   <button data-page="key"><i>✅</i><span>標準答案</span><b class="k" id="k-key"></b></button>
   <button data-page="src"><i>📎</i><span>FAQ 來源</span><b class="k" id="k-src"></b></button>
-  <button data-page="alt"><i>🔀</i><span>換難度再撥</span></button>
   <div class="sidenote" id="sidenote">尚未選題</div>
 </aside>
 
@@ -255,6 +254,7 @@ td.nw{white-space:nowrap}
         <button class="ghost" id="btn-random-org" title="保留上面選的身分與難度，在左邊選中的局處內抽一題">🎲 本局處抽一題</button>
         <button id="btn-random" title="題目、身分、難度全部隨機">🎲 全隨機抽一題</button>
       </div>
+      <div class="hint" id="lv-hint" style="margin-top:9px"></div>
     </div>
     <div class="card fill">
       <div class="faqgrid">
@@ -279,8 +279,6 @@ td.nw{white-space:nowrap}
     <div class="scroll" id="p-key"></div><div class="pager"></div></div></section>
   <section data-page="src" hidden><div class="card fill"><h2>參考 FAQ 來源 <span>腳本每一句專員台詞都來自這些條目</span><span class="tail" id="t-src"></span></h2>
     <div class="scroll" id="p-src"></div><div class="pager"></div></div></section>
-  <section data-page="alt" hidden><div class="card fill"><h2>換難度再撥 <span>同一題換情境再打一次，測不同能力</span></h2>
-    <div class="scroll" id="p-alt"></div><div class="pager"></div></div></section>
 </main>
 </div>
 
@@ -622,7 +620,7 @@ function toast(m){flash('said',m)}
 
 /* ================= 分頁 ================= */
 var PAGES=[['pick','選題抽題'],['dlg','對話腳本'],['probe','追問清單'],
-  ['key','標準答案'],['src','FAQ 來源'],['alt','換難度再撥']];
+  ['key','標準答案'],['src','FAQ 來源']];
 function goPage(key){
   S.page=key;
   var bs=document.querySelectorAll('.side button[data-page]'),ss=document.querySelectorAll('section[data-page]'),i;
@@ -741,11 +739,20 @@ function randomPick(orgOnly){
   flash('said',(orgOnly?'依設定抽出：':'抽出：')+org.org+' · '+PERSONAS[S.persona].n+' · '+S.level);
 }
 
+/* 選題頁：說明目前選的身分與難度要測什麼（取代原本的「換難度再撥」頁） */
+function showHint(){
+  var p=PERSONAS[S.persona],L=LEVELS[S.level];
+  el('lv-hint').innerHTML='<b>'+esc(L.n)+'</b>：'+esc(L.design)+' → 測：'+esc(L.test)+
+    '<br><b>'+esc(p.n)+'</b>：'+esc(p.tone)+(p.limit?'<br><b style="color:var(--warn)">界線</b>：'+esc(p.limit):'')+
+    (S.item?'<br>同一題想換難度再撥：改上面的難度，再到左邊「對話腳本」，題目不變。':'');
+}
+
 /* ================= 各分頁內容 ================= */
 function rebuild(){
   if(!S.item)return;
   S.win=currentWindow();
   var item=S.item,p=PERSONAS[S.persona],L=LEVELS[S.level],W=WINDOWS[S.win],i,s,j;
+  showHint();
   RND=mulberry32(S.seed);
   var kp=keyPoints(item.a),pr=probesFor(item),dl=dialogue(item,pr);
   S.pr=pr;S.dl=dl;S.asked={};
@@ -806,18 +813,6 @@ function rebuild(){
   el('p-src').innerHTML=s;
   el('t-src').textContent=refs.length+' 則';el('k-src').textContent=refs.length;
 
-  /* 換難度 */
-  s='';
-  var keys=['L1','L2','L3','L4'];
-  for(i=0;i<keys.length;i++){
-    var lv=keys[i],ol=openingLines(item,lv),t='';
-    for(j=1;j<ol.length;j++)t+=(j>1?'<br>':'')+ol[j].t;
-    s+='<div class="alt'+(lv===S.level?' cur2':'')+'"><div class="row" style="align-items:center;justify-content:space-between">'+
-      '<span class="lv">'+esc(LEVELS[lv].n)+(lv===S.level?'（目前）':'')+'</span>'+
-      (lv===S.level?'':'<button class="ghost sm" data-level="'+lv+'">改用這個難度</button>')+'</div>'+
-      '<p>'+t+'</p><p class="obs">→ 測：'+esc(LEVELS[lv].test)+'</p></div>';
-  }
-  el('p-alt').innerHTML=s;
 }
 function lineHTML(o){
   return '<div class="line'+(o.who==='員'?' agent':'')+'"><span class="who">'+o.who+'</span><div class="say">'+o.t+
@@ -899,9 +894,6 @@ function init(){
   el('fold').addEventListener('click',function(){setFold(!S.fold)});
   document.querySelector('main').addEventListener('click',function(e){
     var g=e.target.closest('[data-go]');if(g){goPage(g.getAttribute('data-go'));return}
-    var lv=e.target.closest('[data-level]');
-    if(lv){S.level=lv.getAttribute('data-level');el('f-level').value=S.level;rebuild();remember();
-      flash('said','已改成 '+LEVELS[S.level].n);return}
     if(e.target.closest('#chip-seed')){
       var v=window.prompt('輸入腳本編號可重現同一份腳本（1000–9999）：',S.seed);
       if(v===null)return;v=parseInt(v,10);if(!v||v<1)return;
@@ -918,6 +910,7 @@ function init(){
     S.asked[k]=e.target.checked;e.target.closest('.probe').classList.toggle('done',e.target.checked);});
   el('f-persona').addEventListener('change',function(){S.persona=this.value;rebuild();remember()});
   el('f-level').addEventListener('change',function(){S.level=this.value;rebuild();remember()});
+  showHint();
   var st=null;
   el('f-search').addEventListener('input',function(){clearTimeout(st);
     st=setTimeout(function(){renderOrgs();renderTopics()},150);});
@@ -929,7 +922,7 @@ function init(){
     S.seed=1000+Math.floor(Math.random()*9000);rebuild();flash('said','換了說法 · 腳本 #'+S.seed);});
   el('btn-copy').addEventListener('click',function(){copy(plainScript(),'整份腳本已複製')});
   el('btn-print').addEventListener('click',function(){window.print()});
-  /* 鍵盤：Alt+1～6 切分頁 */
+  /* 鍵盤：Alt+1～5 切分頁 */
   document.addEventListener('keydown',function(e){
     if(!e.altKey)return;var n=parseInt(e.key,10);
     if(n>=1&&n<=PAGES.length){e.preventDefault();goPage(PAGES[n-1][0]);}});
