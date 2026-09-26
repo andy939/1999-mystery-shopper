@@ -739,12 +739,11 @@ function randomPick(orgOnly){
   flash('said',(orgOnly?'依設定抽出：':'抽出：')+org.org+' · '+PERSONAS[S.persona].n+' · '+S.level);
 }
 
-/* 選題頁：說明目前選的身分與難度要測什麼（取代原本的「換難度再撥」頁） */
+/* 選題頁：說明目前選的身分與難度要測什麼 */
 function showHint(){
   var p=PERSONAS[S.persona],L=LEVELS[S.level];
   el('lv-hint').innerHTML='<b>'+esc(L.n)+'</b>：'+esc(L.design)+' → 測：'+esc(L.test)+
-    '<br><b>'+esc(p.n)+'</b>：'+esc(p.tone)+(p.limit?'<br><b style="color:var(--warn)">界線</b>：'+esc(p.limit):'')+
-    (S.item?'<br>同一題想換難度再撥：改上面的難度，再到左邊「對話腳本」，題目不變。':'');
+    '<br><b>'+esc(p.n)+'</b>：'+esc(p.tone)+(p.limit?'<br><b style="color:var(--warn)">界線</b>：'+esc(p.limit):'');
 }
 
 /* ================= 各分頁內容 ================= */
