@@ -189,6 +189,25 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 td.nw{white-space:nowrap}
 .wrap{border:1px solid var(--line);border-radius:8px}
 
+/* 智能客服測題 */
+.cks{display:flex;flex-wrap:wrap;gap:4px 12px;padding-top:6px}
+label.ck{display:inline-flex;align-items:center;gap:4px;margin:0;font-size:13px;color:var(--ink);cursor:pointer}
+label.ck input{padding:0;width:15px;height:15px;accent-color:var(--accent)}
+table.cs td{font-size:13px}
+.csrow{cursor:pointer}
+.csrow:hover td{background:#fafbfc}
+.csrow.on td{background:var(--soft)}
+td.csq{min-width:260px;font-weight:600;line-height:1.55}
+td.csp{font-size:12px;color:#4b5563;min-width:150px;max-width:260px}
+tr.csdet td{background:#fafbfc}
+.csans{padding:4px 2px 8px;max-width:980px}
+.csans b{font-size:12px;color:var(--dim)}
+.csav{color:var(--danger);font-size:12.5px;margin:3px 0}
+.csbody{white-space:pre-wrap;font-size:13.5px;line-height:1.75;margin:6px 0;max-height:320px;overflow:auto;
+  border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:#fff}
+.csans a{font-size:12.5px;margin-right:10px}
+.qm::after{white-space:pre-line}
+
 @media (max-width:900px){
   body{overflow:auto;display:block}
   .layout{grid-template-columns:minmax(0,1fr)}
@@ -232,6 +251,7 @@ td.nw{white-space:nowrap}
   <button data-page="probe"><i>❓</i><span>追問清單</span><b class="k" id="k-probe"></b></button>
   <button data-page="key"><i>✅</i><span>標準答案</span><b class="k" id="k-key"></b></button>
   <button data-page="src"><i>📎</i><span>FAQ 來源</span><b class="k" id="k-src"></b></button>
+  <button data-page="cs"><i>🧪</i><span>智能客服測題</span></button>
   <div class="sidenote" id="sidenote">尚未選題</div>
 </aside>
 
@@ -286,6 +306,29 @@ td.nw{white-space:nowrap}
     <div class="scroll" id="p-key"></div><div class="pager"></div></div></section>
   <section data-page="src" hidden><div class="card fill"><h2>參考 FAQ 來源 <span>腳本每一句專員台詞都來自這些條目</span><span class="tail" id="t-src"></span></h2>
     <div class="scroll" id="p-src"></div><div class="pager"></div></div></section>
+  <section data-page="cs" hidden>
+    <div class="card" style="flex:none">
+      <div class="row">
+        <div><label for="cs-n">出幾題</label><input id="cs-n" type="number" min="1" max="300" value="20" style="width:80px"></div>
+        <div><label for="cs-org">局處</label><select id="cs-org" style="width:170px"></select></div>
+        <div><label>難度 <span class="qm" tabindex="0" data-tip="L1 直述：接近 FAQ 標題的問法&#10;L2 口語改寫：生活化講法&#10;L3 情境＋條件判斷：給年齡、身分、日期等條件&#10;L4 一次問多件事，或夾帶錯誤前提&#10;&#10;都不勾＝不限">?</span></label>
+          <div class="cks" id="cs-lv"><label class="ck"><input type="checkbox" value="L1"> L1</label><label class="ck"><input type="checkbox" value="L2"> L2</label><label class="ck"><input type="checkbox" value="L3"> L3</label><label class="ck"><input type="checkbox" value="L4"> L4</label></div></div>
+        <div style="flex:1;min-width:260px"><label>題型 <span class="qm" tabindex="0" data-tip="口語情境：帶生活情境的講法&#10;多意圖：一句話問兩件事，兩則 FAQ 都要答到&#10;錯誤前提：民眾說錯，客服應先更正&#10;用詞落差：講法跟 FAQ 標題差很遠&#10;條件判斷：要套用 FAQ 裡的資格條件&#10;時效：有年度、日期的內容&#10;無答案：非市府權責，應轉介、不可編造&#10;&#10;都不勾＝不限">?</span></label>
+          <div class="cks" id="cs-ty"></div></div>
+      </div>
+      <div class="row" style="margin-top:10px;align-items:center">
+        <label class="ck"><input type="checkbox" id="cs-bench" checked> 含人工標竿 20 題</label>
+        <label class="ck"><input type="checkbox" id="cs-rule" checked> 題庫不夠時用規則補題</label>
+        <span style="flex:1"></span>
+        <span class="said" id="cs-said"></span>
+        <button class="ghost" id="cs-copy" title="只複製題目，方便貼給智能客服">複製題目</button>
+        <button class="ghost" id="cs-xls">匯出 Excel</button>
+        <button id="cs-go">🎲 產生測試題</button>
+      </div>
+    </div>
+    <div class="card fill"><h2>測試題 <span>點一列看標準答案；匯出的 Excel 前五欄與「FAQ系統調校之題目」相同</span><span class="tail" id="cs-count"></span></h2>
+      <div class="scroll" id="cs-list"></div></div>
+  </section>
 </main>
 </div>
 
@@ -633,8 +676,8 @@ function goPage(key){
   var bs=document.querySelectorAll('.side button[data-page]'),ss=document.querySelectorAll('section[data-page]'),i;
   for(i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-page')===key);
   for(i=0;i<ss.length;i++)ss[i].hidden=ss[i].getAttribute('data-page')!==key;
-  el('cur').hidden=key==='pick';
-  el('sidenote').hidden=key==='pick';   /* 選題頁只管選，抽到題目後才在腳本頁顯示題目 */
+  el('cur').hidden=key==='pick'||key==='cs';
+  el('sidenote').hidden=key==='pick'||key==='cs';   /* 選題頁只管選，抽到題目後才在腳本頁顯示題目 */
   var sc=document.querySelector('section[data-page="'+key+'"] .scroll');if(sc)sc.scrollTop=0;
   if(key==='pick')keepCurrentInView();
   saveUI();
@@ -866,6 +909,228 @@ function copy(text,msg){
   else fb();
 }
 
+
+/* ================= 智能客服測題 ================= */
+/* 題源：data/cstest.json（人工標竿＋AI 出題，含難度、題型、應答要點）；不夠時用規則模板補。
+   每題附標準答案（對應 FAQ 原文），匯出 Excel 後人工比對智能客服回答。 */
+var CS={bank:null,set:[],sidMap:null,open:{}};
+var CS_TYPES=['口語情境','多意圖','錯誤前提','用詞落差','條件判斷','時效','無答案'];
+var CS_EXPECT={'回答':'照 FAQ 回答','糾正':'先更正民眾的錯誤前提再回答','轉介':'題庫無此答案：應說明並轉介，不可自行編造'};
+var CS_OUT=[
+  ['我的健保卡不見了，要去哪裡補辦？補辦要多少錢？','中央權責（健保署）'],
+  ['我護照下個月到期，出國前來得及換嗎？要去哪裡辦？','中央權責（外交部領事事務局）'],
+  ['今年綜所稅我可以列舉扣除房貸利息嗎？上限多少？','中央權責（財政部國稅局）'],
+  ['我家這個月電費突然變很貴，是不是台電算錯了？','非市府權責（台電）'],
+  ['我住新北市板橋，垃圾車幾點會到我們那條路？','外縣市事務（新北市環保局）'],
+  ['我的勞保年金什麼時候會入帳？可以提早領嗎？','中央權責（勞保局）'],
+  ['高速公路 ETC 通行費欠繳了，會被罰多少？','中央權責（高公局）'],
+  ['我想問明天台北會不會下雨，要不要帶傘？','非政府業務（氣象資訊）'],
+  ['我要檢舉一家網拍賣家收錢不出貨，你們可以幫我處理嗎？','非市府權責（警政／消保，應轉介）'],
+  ['我兒子在高雄當兵，可以申請調回台北的部隊嗎？','中央權責（國防部）'],
+  ['我想辦台灣的身分證但我是日本人，要怎麼入籍？','中央權責（內政部移民署）'],
+  ['股票這幾天一直跌，政府會不會出手救市？','非市府業務']
+];
+function csSidMap(){
+  if(CS.sidMap)return CS.sidMap;
+  var m={},i,j;
+  for(i=0;i<ORGS.length;i++)for(j=0;j<ORGS[i].items.length;j++)
+    if(ORGS[i].items[j].sid)m[ORGS[i].items[j].sid]={org:ORGS[i],item:ORGS[i].items[j]};
+  return CS.sidMap=m;
+}
+function csLoadBank(cb){
+  if(CS.bank)return cb();
+  fetch('data/cstest.json').then(function(r){if(!r.ok)throw 0;return r.json()})
+    .then(function(b){CS.bank=b;cb()},function(){CS.bank=[];cb()});
+}
+function csOpts(){
+  var lv=[],ty=[],i,b=document.querySelectorAll('#cs-lv input:checked,#cs-ty input:checked');
+  for(i=0;i<b.length;i++)(b[i].closest('#cs-lv')?lv:ty).push(b[i].value);
+  return {n:Math.max(1,Math.min(300,parseInt(el('cs-n').value,10)||20)),lv:lv,ty:ty,org:el('cs-org').value,
+    bench:el('cs-bench').checked,rule:el('cs-rule').checked};
+}
+function csMatch(q,o){
+  if(o.lv.length&&o.lv.indexOf(q.lv)<0)return false;
+  if(o.ty.length){var ok=false;for(var i=0;i<q.type.length;i++)if(o.ty.indexOf(q.type[i])>=0)ok=true;if(!ok)return false}
+  if(o.org){
+    var m=csSidMap(),hit=false;
+    for(var j=0;j<q.faqs.length;j++)if(m[q.faqs[j]]&&m[q.faqs[j]].org.org===o.org)hit=true;
+    if(!hit)return false;
+  }
+  return true;
+}
+function csShuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
+
+/* ---- 規則模板補題 ---- */
+function csColloquial(t){
+  return String(t).replace(/^請問/,'').replace(/^【[^】]*】/,'').replace(/臺北市/g,'台北市')
+    .replace(/如何/g,'要怎麼').replace(/為何/g,'是什麼').replace(/[？?\s]+$/,'')+'？';
+}
+function csPoints(a){
+  var s=sentences(a),out=[],i,m;
+  for(i=0;i<s.length&&out.length<3;i++){
+    m=/[\d０-９一二三四五六七八九十百千萬]+\s*(元|日|天|週|星期|個月|月|年|歲|小時|分鐘|點|次|處|人|%|％)/.exec(s[i]);
+    if(m){var st=Math.max(0,m.index-8);out.push(s[i].slice(st,Math.min(s[i].length,m.index+m[0].length+6)).trim())}
+  }
+  if(!out.length){var k=keyPoints(a);for(i=0;i<k.length&&i<2;i++)out.push(trim(k[i],26))}
+  return out;
+}
+function csRuleOne(o,lvPick,tyPick){
+  var pool=[],i,j;
+  for(i=0;i<ORGS.length;i++){if(o.org&&ORGS[i].org!==o.org)continue;pool.push(ORGS[i])}
+  if(tyPick==='無答案'||(!pool.length)){
+    var x=CS_OUT[Math.floor(Math.random()*CS_OUT.length)];
+    return {id:'R-OUT',src:'規則',q:x[0],lv:'L2',type:['無答案'],faqs:[],expect:'轉介',points:['轉介'],avoid:[],note:x[1]};
+  }
+  var wsum=0;for(i=0;i<pool.length;i++)wsum+=pool[i].total;
+  var r=Math.random()*wsum,acc=0,org=pool[0];
+  for(i=0;i<pool.length;i++){acc+=pool[i].total;if(r<=acc){org=pool[i];break}}
+  var it=org.items[Math.floor(Math.random()*org.items.length)];
+  var lv=lvPick,q,ty,faqs=[it.sid],d=DISTRICTS[Math.floor(Math.random()*DISTRICTS.length)];
+  if(lv==='L1'){q=it.q;ty=['口語情境']}
+  else if(lv==='L2'){q=['我想問一下，','不好意思，想請教一下，','欸我問一下喔，'][Math.floor(Math.random()*3)]+csColloquial(it.q);ty=['口語情境']}
+  else if(lv==='L3'){
+    var pr=null;for(j=0;j<PROBES.length;j++)if(PROBES[j][0].test(it.q+(it.a||''))){pr=PROBES[j][1].replace('信義區',d);break}
+    q='我住'+d+'，'+csColloquial(it.q)+(pr?'另外'+pr:'');ty=['口語情境','條件判斷'];
+  }else{
+    var it2=null;for(j=0;j<20&&!it2;j++){var c=org.items[Math.floor(Math.random()*org.items.length)];if(c!==it&&c.t===it.t)it2=c}
+    if(!it2)it2=org.items[(org.items.indexOf(it)+1)%org.items.length];
+    q=csColloquial(it.q).replace(/？$/,'，')+'還有順便問一下，'+csColloquial(it2.q);ty=['多意圖'];faqs.push(it2.sid);
+  }
+  return {id:'R-'+it.sid.slice(0,6),src:'規則',q:q,lv:lv,type:ty,faqs:faqs,expect:'回答',points:null,avoid:[],note:'規則模板產生'};
+}
+
+/* ---- 產生 ---- */
+function csGenerate(){
+  csLoadBank(function(){
+    var o=csOpts(),cand=[],i;
+    for(i=0;i<CS.bank.length;i++){var q=CS.bank[i];
+      if(q.src==='標竿'&&!o.bench)continue;
+      if(csMatch(q,o))cand.push(q);}
+    csShuffle(cand);
+    /* 標竿題優先放前面 */
+    cand.sort(function(a,b){return (b.src==='標竿')-(a.src==='標竿')});
+    var set=cand.slice(0,o.n),need=o.n-set.length;
+    if(need>0&&o.rule){
+      var lvs=o.lv.length?o.lv:['L1','L2','L3','L4'],tys=o.ty.length?o.ty:[''];
+      for(i=0;i<need;i++){
+        var ty=tys[i%tys.length];
+        if(ty&&['口語情境','多意圖','條件判斷','無答案'].indexOf(ty)<0)continue;  /* 錯誤前提等只有 AI 題庫出得好 */
+        var lv=ty==='多意圖'?'L4':(ty==='條件判斷'?'L3':lvs[i%lvs.length]);
+        set.push(csRuleOne(o,lv,ty));
+      }
+    }
+    CS.set=set.map(function(q,k){var c={};for(var p in q)c[p]=q[p];c.no=k+1;return c});
+    CS.open={};
+    csFill(function(){csRender();
+      var short=o.n-CS.set.length;
+      flash('cs-said','產生 '+CS.set.length+' 題'+(short>0?'（符合條件的只有這些，可放寬條件或勾「規則補題」）':''));});
+  });
+}
+/* 把每題對應 FAQ 的答案載進來（按局處分檔，只抓需要的） */
+function csFill(cb){
+  var m=csSidMap(),need=[],i,j,left;
+  for(i=0;i<CS.set.length;i++)for(j=0;j<CS.set[i].faqs.length;j++){
+    var x=m[CS.set[i].faqs[j]];if(x&&!x.org.loaded&&need.indexOf(x.org)<0)need.push(x.org)}
+  left=need.length;
+  function done(){
+    for(i=0;i<CS.set.length;i++){var q=CS.set[i];q.refs=[];
+      for(j=0;j<q.faqs.length;j++){var y=m[q.faqs[j]];if(y)q.refs.push({org:y.org.org,u:y.item.u,t:y.item.q,a:y.item.a||'',l:y.item.l,d:y.item.d})}
+      if(!q.points){var all='';for(j=0;j<q.refs.length;j++)all+=q.refs[j].a+'。';q.points=csPoints(all)}
+    }
+    cb();
+  }
+  if(!left)return done();
+  for(i=0;i<need.length;i++)ensureOrg(need[i],function(){if(--left===0)done()});
+}
+function csAnswerText(q){
+  if(q.src==='標竿'&&q.ref_answer)return q.ref_answer;
+  if(!q.refs||!q.refs.length)return '（題庫無此答案）';
+  var CN=['(一)','(二)','(三)','(四)'];
+  return q.refs.length>1?q.refs.map(function(r,i){return CN[i]+'\n'+r.a}).join('\n'):q.refs[0].a;
+}
+function csTitleText(q){
+  if(q.src==='標竿'&&q.ref_title)return q.ref_title;
+  if(!q.refs||!q.refs.length)return '—';
+  var CN=['(一)','(二)','(三)','(四)'];
+  return q.refs.length>1?q.refs.map(function(r,i){return CN[i]+r.t}).join('\n'):q.refs[0].t;
+}
+function csRender(){
+  var h='',i;
+  if(!CS.set.length){el('cs-list').innerHTML='<div class="empty">設定好條件後按「🎲 產生測試題」</div>';el('cs-count').textContent='';return}
+  var cnt={};for(i=0;i<CS.set.length;i++)cnt[CS.set[i].lv]=(cnt[CS.set[i].lv]||0)+1;
+  el('cs-count').textContent=CS.set.length+' 題 · '+['L1','L2','L3','L4'].filter(function(k){return cnt[k]}).map(function(k){return k+' '+cnt[k]}).join('、');
+  h='<div class="wrap"><table class="cs"><thead><tr><th>#</th><th>難度</th><th>題型</th><th>題目</th><th>期望</th><th>應答要點</th><th>對應 FAQ</th></tr></thead><tbody>';
+  for(i=0;i<CS.set.length;i++){
+    var q=CS.set[i];
+    h+='<tr class="csrow'+(CS.open[i]?' on':'')+'" data-cs="'+i+'"><td class="num">'+q.no+'</td>'+
+      '<td class="nw"><span class="badge">'+esc(q.lv)+'</span></td>'+
+      '<td>'+q.type.map(function(t){return '<span class="badge gray">'+esc(t)+'</span>'}).join(' ')+
+      (q.src!=='AI'?' <span class="badge hot">'+esc(q.src)+'</span>':'')+'</td>'+
+      '<td class="csq">'+esc(q.q)+'</td>'+
+      '<td class="nw" title="'+esc(CS_EXPECT[q.expect]||'')+'">'+esc(q.expect)+'</td>'+
+      '<td class="csp">'+(q.points||[]).map(esc).join('<br>')+'</td>'+
+      '<td class="csp">'+esc(csTitleText(q))+'</td></tr>';
+    if(CS.open[i]){
+      h+='<tr class="csdet"><td></td><td colspan="6"><div class="csans"><b>標準答案</b>'+
+        (q.avoid&&q.avoid.length?'<div class="csav">不應出現：'+q.avoid.map(esc).join('、')+'</div>':'')+
+        (q.note?'<div class="hint">出題用意：'+esc(q.note)+'</div>':'')+
+        '<div class="csbody">'+esc(csAnswerText(q))+'</div>'+
+        (q.refs||[]).map(function(r){return r.l?'<a href="'+esc(r.l)+'" target="_blank" rel="noopener">'+esc(r.org)+'〈'+esc(r.t.slice(0,24))+'〉原始頁 ↗</a> ':''}).join('')+
+        '</div></td></tr>';
+    }
+  }
+  el('cs-list').innerHTML=h+'</tbody></table></div>';
+}
+
+/* ---- 匯出 Excel（SheetJS，按下才載入） ---- */
+function csLoadXLSX(cb){
+  if(window.XLSX)return cb();
+  var s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+  s.onload=cb;s.onerror=function(){flash('cs-said','Excel 元件載入失敗，請檢查網路')};
+  document.head.appendChild(s);
+}
+function csExport(){
+  if(!CS.set.length){flash('cs-said','請先產生測試題');return}
+  csLoadXLSX(function(){
+    /* 前五欄與「FAQ系統調校之題目」相同，後面是補充欄 */
+    var head=['序號','題目 ','FAQ知識編號','FAQ知識標題','FAQ知識答案','難度','題型','期望反應','應答要點','不應出現',
+      '發布機關','原始頁連結','出題用意','題源','智能客服回答','是否正確','備註'];
+    var rows=[head];
+    for(var i=0;i<CS.set.length;i++){var q=CS.set[i];
+      rows.push([q.no,q.q,q.ref_no||'',csTitleText(q),csAnswerText(q),q.lv,q.type.join('、'),
+        q.expect+'：'+(CS_EXPECT[q.expect]||''),(q.points||[]).join('；'),(q.avoid||[]).join('；'),
+        (q.refs||[]).map(function(r){return r.u}).join(' / '),(q.refs||[]).map(function(r){return r.l||''}).join('\n'),
+        q.note||'',q.src,'','','']);
+    }
+    var ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:5},{wch:48},{wch:10},{wch:32},{wch:60},{wch:5},{wch:14},{wch:16},{wch:30},{wch:20},
+      {wch:22},{wch:30},{wch:24},{wch:6},{wch:48},{wch:9},{wch:16}];
+    var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'工作表1');
+    var d=new Date(),p=function(n){return (n<10?'0':'')+n};
+    XLSX.writeFile(wb,'智能客服測試題_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+'.xlsx');
+    flash('cs-said','已匯出 '+CS.set.length+' 題');
+  });
+}
+function csCopy(){
+  if(!CS.set.length){flash('cs-said','請先產生測試題');return}
+  copy(CS.set.map(function(q){return q.no+'. '+q.q}).join('\n'),'已複製 '+CS.set.length+' 題題目（不含答案）');
+}
+function csInit(){
+  var h='<option value="">全部局處</option>',i;
+  for(i=0;i<ORGS.length;i++)h+='<option>'+esc(ORGS[i].org)+'</option>';
+  el('cs-org').innerHTML=h;
+  el('cs-ty').innerHTML=CS_TYPES.map(function(t){return '<label class="ck"><input type="checkbox" value="'+t+'"> '+t+'</label>'}).join('');
+  el('cs-go').addEventListener('click',csGenerate);
+  el('cs-xls').addEventListener('click',csExport);
+  el('cs-copy').addEventListener('click',csCopy);
+  el('cs-list').addEventListener('click',function(e){
+    if(e.target.closest('a'))return;
+    var r=e.target.closest('[data-cs]');if(!r)return;
+    var k=r.getAttribute('data-cs');CS.open[k]=!CS.open[k];csRender();});
+  csRender();
+}
+
 /* ================= init ================= */
 function fillSelect(id,obj,val){
   var s=el(id),h='',k;
@@ -878,6 +1143,7 @@ function init(){
   fillSelect('f-persona',PERSONAS,S.persona);
   fillSelect('f-level',LEVELS,S.level);
   drawPagers();
+  csInit();
   var ui=lsGet(LSU,null),last=lsGet(LSL,null);
   if(ui&&ui.fold)setFold(true);
   if(last){
