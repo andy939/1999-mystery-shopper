@@ -48,7 +48,7 @@ h1{font-size:16px;color:#fff}
 .side button.fold{color:var(--dim);font-size:16px;padding:0 10px 2px;line-height:1}
 .layout.fold{grid-template-columns:52px minmax(0,1fr)}
 .layout.fold .side button span,.layout.fold .side .grp,.layout.fold .side .k,
-.layout.fold .sidenote{display:none}
+.layout.fold .sidenote,.sidenote[hidden]{display:none}
 .layout.fold .side button[data-page]{justify-content:center;padding:5px 4px}
 .sidenote{font-size:12px;color:var(--dim);padding:8px 10px 2px;line-height:1.55;
       border-top:1px solid var(--line);margin-top:6px}
@@ -56,7 +56,7 @@ h1{font-size:16px;color:#fff}
 
 main{min-height:0;min-width:0;display:flex;flex-direction:column;gap:12px}
 section[data-page]{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
-section[hidden]{display:none!important}
+section[hidden],.cur[hidden]{display:none!important}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;
       min-width:0}
 .card h2{font-size:13px;color:var(--dim);font-weight:600;letter-spacing:.05em;margin:0 0 10px;
@@ -231,7 +231,7 @@ td.nw{white-space:nowrap}
 
 <main>
   <!-- 目前題目（每一頁都看得到） -->
-  <div class="card cur">
+  <div class="card cur" id="cur">
     <div class="main">
       <div class="org" id="cur-org">—</div>
       <h3 id="cur-q">題庫載入中…</h3>
@@ -242,7 +242,6 @@ td.nw{white-space:nowrap}
       <button class="ghost sm" id="btn-reroll" title="同一題換一套說法">換說法</button>
       <button class="ghost sm" id="btn-copy">複製腳本</button>
       <button class="ghost sm" id="btn-print">列印／PDF</button>
-      <button class="sm" id="btn-random" title="題目、身分、難度全部隨機">🎲 全隨機抽一題</button>
     </div>
   </div>
 
@@ -253,7 +252,8 @@ td.nw{white-space:nowrap}
         <div><label for="f-level">情境難度</label><select id="f-level" style="width:150px"></select></div>
         <div style="flex:1;min-width:220px"><label for="f-search">全題庫搜尋（空白分隔多個詞）</label>
           <input id="f-search" type="search" placeholder="拖吊、特休、房屋稅…" style="width:100%"></div>
-        <button class="ghost" id="btn-random-org" title="保留目前身分與難度，在選中的局處內抽一題">🎲 本局處抽一題</button>
+        <button class="ghost" id="btn-random-org" title="保留上面選的身分與難度，在左邊選中的局處內抽一題">🎲 本局處抽一題</button>
+        <button id="btn-random" title="題目、身分、難度全部隨機">🎲 全隨機抽一題</button>
       </div>
     </div>
     <div class="card fill">
@@ -628,6 +628,8 @@ function goPage(key){
   var bs=document.querySelectorAll('.side button[data-page]'),ss=document.querySelectorAll('section[data-page]'),i;
   for(i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-page')===key);
   for(i=0;i<ss.length;i++)ss[i].hidden=ss[i].getAttribute('data-page')!==key;
+  el('cur').hidden=key==='pick';
+  el('sidenote').hidden=key==='pick';   /* 選題頁只管選，抽到題目後才在腳本頁顯示題目 */
   var sc=document.querySelector('section[data-page="'+key+'"] .scroll');if(sc)sc.scrollTop=0;
   if(key==='pick')keepCurrentInView();
   saveUI();
