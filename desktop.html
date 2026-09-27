@@ -93,6 +93,7 @@ button{background:var(--navy);color:#fff;border-color:transparent;cursor:pointer
 button:hover{filter:brightness(.93)}
 button.ghost{background:#fff;color:var(--ink);border-color:var(--line);font-weight:400}
 button.sm{padding:5px 11px;font-size:13px}
+button.tight{padding:8px 10px}
 button:disabled{opacity:.45;cursor:default;filter:none}
 .hint{color:var(--dim);font-size:12.5px}
 /* 問號提示：滑過或聚焦才顯示說明，不占版面 */
@@ -133,7 +134,11 @@ button:disabled{opacity:.45;cursor:default;filter:none}
 .item.open{border-color:var(--accent);cursor:default}
 .item.open h3{font-size:15px;cursor:pointer}
 .peek{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
-.peek .ans{font-size:13.5px;line-height:1.75;white-space:pre-wrap;max-height:48vh;overflow:auto;cursor:text;user-select:text}
+.peek .ans{font-size:13.5px;line-height:1.75;white-space:pre-wrap;cursor:text;user-select:text}
+.item.open h3{position:sticky;top:0;z-index:1;background:var(--card);margin:-9px -13px 0;padding:9px 13px 4px;border-radius:8px 8px 0 0}
+.badge.ai{background:#e8f0fc;color:var(--navy)}
+.aiq{margin-top:10px;padding:8px 10px;background:#f5f8fd;border-radius:6px;font-size:13px;line-height:1.7}
+.aiq b{display:block;font-size:12px;color:var(--dim);margin-bottom:2px}
 .peek-acts{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px}
 mark{background:#ffe9a8;border-radius:2px}
 .empty{padding:30px 10px;color:var(--dim);text-align:center}
@@ -301,9 +306,9 @@ section[data-page="cs"]>.card.fill{padding:8px 10px}
         <div><label for="f-level">情境難度 <span class="qm" id="qm-level" tabindex="0">?</span></label><select id="f-level" style="width:128px"></select></div>
         <div><label for="f-search">全題庫搜尋（空白分隔多個詞）</label>
           <input id="f-search" type="search" placeholder="拖吊、特休、房屋稅…" style="width:372px"></div>
-        <button id="btn-make" disabled title="先在下方點一題看內容，再按這裡產生對話腳本">📝 出題</button>
-        <button class="ghost" id="btn-random-org" title="保留上面選的身分與難度，在左邊選中的局處內抽一題">🎲 本局抽題</button>
-        <button class="ghost" id="btn-random" title="題目、身分、難度全部隨機">🎲 隨機抽題</button>
+        <button id="btn-make" class="tight" disabled title="先在下方點一題看內容，再按這裡產生對話腳本">📝 出題</button>
+        <button class="ghost tight" id="btn-random-org" title="保留上面選的身分與難度，在左邊選中的局處內抽一題">🎲 本局</button>
+        <button class="ghost tight" id="btn-random" title="題目、身分、難度全部隨機抽一題">🎲 隨機</button>
       </div>
 
     </div>
@@ -333,7 +338,7 @@ section[data-page="cs"]>.card.fill{padding:8px 10px}
   <section data-page="cs" hidden>
     <div class="card" style="flex:none">
       <div class="row csbar">
-        <div><label for="cs-n">出幾題</label><input id="cs-n" type="number" min="1" max="300" value="20" style="width:58px"></div>
+        <div><label for="cs-n">出幾題</label><input id="cs-n" type="number" min="1" max="3000" value="20" style="width:58px"></div>
         <div><label for="cs-org">局處</label><select id="cs-org" style="width:134px"></select></div>
         <div><label>難度 <span class="qm" tabindex="0" data-tip="L0 關鍵詞：只打這則 FAQ 的重點關鍵詞（專有名詞、業務名稱、事件，可空白分隔多個），測最基本的檢索&#10;L1 直述：接近 FAQ 標題的問法&#10;L2 口語改寫：生活化講法&#10;L3 情境＋條件判斷：給年齡、身分、日期等條件&#10;L4 一次問多件事，或夾帶錯誤前提&#10;&#10;都不勾＝不限">?</span></label>
           <div class="cks" id="cs-lv"><label class="ck"><input type="checkbox" value="L0"> L0</label><label class="ck"><input type="checkbox" value="L1"> L1</label><label class="ck"><input type="checkbox" value="L2"> L2</label><label class="ck"><input type="checkbox" value="L3"> L3</label><label class="ck"><input type="checkbox" value="L4"> L4</label></div></div>
@@ -593,6 +598,12 @@ function cite(f){
 /* 追問：命中規則 + 從標準答案挑出對應句當「正解」 */
 function probesFor(item){
   var txt=item.q+' '+item.a,sn=sentences(item.a),hit=[],out=[],i,j;
+  /* AI 題的條件判斷／錯誤前提／多意圖題排最前面，正解用它的應答要點 */
+  var deep=shuffled(aiFor(item).filter(function(q){return q.lv==='L3'||q.lv==='L4'}));
+  for(i=0;i<deep.length&&i<2;i++){var d=deep[i];
+    out.push({q:d.q,why:(d.type||[]).join('、')+'：'+(d.note||''),kind:'AI 題',src:item,
+      ans:(d.expect==='糾正'?'先更正民眾說法。':'')+(d.points||[]).join('；')+
+        (d.avoid&&d.avoid.length?'（不應說：'+d.avoid.join('、')+'）':'')});}
   for(i=0;i<PROBES.length;i++){
     if(!PROBES[i][0].test(txt))continue;
     var ans='';
@@ -602,7 +613,7 @@ function probesFor(item){
   }
   /* 命中的題目洗牌後取 3–4 題，所以同一主題每次的追問組合不同 */
   hit=shuffled(hit);
-  var take=hit.length>3?(3+Math.floor(RND()*2)):hit.length;
+  var take=Math.max(0,(hit.length>3?(3+Math.floor(RND()*2)):hit.length)-out.length);
   for(i=0;i<take;i++)out.push(hit[i]);
   if(out.length<3)out.push({q:'這件事如果我不方便自己來辦，還有沒有其他管道？',
     why:'替代管道是否主動提供',ans:'',src:item,kind:'主題'});
@@ -625,18 +636,36 @@ function crossOrgFor(item){
   }
   return pool.length?pool[Math.floor(Math.random()*pool.length)]:'區公所';
 }
-/* 開場（依難度） */
+/* AI 題（cstest.json）與智能客服測題共用：sid → 對話型題目（不含 L0 關鍵詞） */
+var AIQ=null;
+function aiIndex(){
+  if(AIQ)return AIQ;AIQ={};
+  var b=CS.bank||[],i,j;
+  for(i=0;i<b.length;i++){var q=b[i];if(q.lv==='L0'||!q.faqs)continue;
+    for(j=0;j<q.faqs.length;j++)(AIQ[q.faqs[j]]=AIQ[q.faqs[j]]||[]).push(q);}
+  return AIQ;
+}
+function aiFor(item){return item&&item.sid&&CS.bank?(aiIndex()[item.sid]||[]):[]}
+function aiPick(list,lvs){
+  for(var k=0;k<lvs.length;k++){var c=list.filter(function(q){return q.lv===lvs[k]});if(c.length)return pick(c)}
+  return null;
+}
+/* 開場（依難度）：有 AI 題就用 AI 題的問法，沒有才用規則模板 */
 function openingLines(item,level){
-  var p=PERSONAS[S.persona],lines=[{who:'客',t:p.open}];
-  if(level==='L1'){lines.push({who:'客',t:'我想請問：'+item.q});}
-  else if(level==='L2'){
+  var p=PERSONAS[S.persona],lines=[{who:'客',t:p.open}],ai=aiFor(item),a;
+  if(level==='L1'){a=aiPick(ai,['L1','L2']);lines.push({who:'客',t:a?a.q:'我想請問：'+item.q});}
+  else if(level==='L2'&&(a=aiPick(ai,['L2','L1']))){
+    lines.push({who:'客',t:'就是…'+esc(a.q)+'<em>'+pick(VAR.pause)+'</em>'});
+  }else if(level==='L2'){
     lines.push({who:'客',t:'就是…那個…'+fill(pick(VAR.vague),{t:item.t})+'。大概就是'+
       shortQ(item.q)+'這樣，<em>'+pick(VAR.pause)+'</em>你聽得懂我的意思嗎？'});
   }else if(level==='L3'){
     lines.push({who:'客',t:'我上個禮拜就打過一次 1999 了，到現在還是沒人跟我講清楚。<em>（語氣不耐但不辱罵）</em>'});
-    lines.push({who:'客',t:'我要問的是：'+item.q+' 這到底是誰在管？'});
+    a=aiPick(ai,['L2','L1']);
+    lines.push({who:'客',t:a?esc(a.q)+' 這次可以直接告訴我嗎？':'我要問的是：'+item.q+' 這到底是誰在管？'});
   }else{
-    lines.push({who:'客',t:'我有兩件事要問。第一，'+item.q});
+    a=aiPick(ai,['L1','L2']);
+    lines.push({who:'客',t:'我有兩件事要問。第一，'+(a?esc(a.q):item.q)});
     lines.push({who:'客',t:'第二，我聽說「'+crossOrgFor(item)+'」那邊也要辦，是真的嗎？'+
       '如果不是你們管的，麻煩幫我轉正確的單位。'});
     lines.push({who:'客',t:'還有，'+(CROSS_CENTRAL[item.t]||'這件事是不是要找中央？')+
@@ -750,6 +779,10 @@ function renderTopics(){
       if(items.length>=LIM)break outer;
     }
   }else if(S.browse){for(i=0;i<S.browse.items.length;i++)items.push([S.browse,S.browse.items[i]]);}
+  /* 展開一題時鎖定：只留這一題，捲動不會跑到別題；點標題或「收合」回到清單原位置 */
+  var locked=null;
+  if(S.peek)for(i=0;i<items.length;i++)if(items[i][1]===S.peek){locked=items[i];break}
+  var total=items.length;if(locked)items=[locked];
   for(i=0;i<items.length;i++){
     var org=items[i][0],item=items[i][1],open=S.peek===item;
     html+='<div class="item'+(S.item===item?' on':'')+(open?' open':'')+'" data-org="'+esc(org.org)+'" data-q="'+esc(item.q)+'">'+
@@ -757,9 +790,12 @@ function renderTopics(){
       (ts.length||open?'<span>'+esc(org.org)+'</span>':'')+
       '<span>'+esc(item.u)+'</span><span>'+esc(item.t)+'</span><span>點閱 '+num(item.h)+'</span>'+
       (item.d?'<span>發布 '+esc(item.d)+'</span>':'')+
-      (item.h>=200000?'<span class="badge hot">熱門</span>':'')+'</div>'+
+      (item.h>=200000?'<span class="badge hot">熱門</span>':'')+
+      (aiFor(item).length?'<span class="badge ai">AI 題 '+aiFor(item).length+'</span>':'')+'</div>'+
       (open?'<div class="peek">'+
         '<div class="ans">'+(item.a===null?'答覆載入中…':item.a?esc(item.a):'（此題沒有答覆內容）')+'</div>'+
+        (aiFor(item).length?'<div class="aiq"><b>AI 題（出題時會用這些問法）</b>'+aiFor(item).map(function(q){
+          return '<div><span class="badge">'+esc(q.lv)+'</span> '+esc(q.q)+'</div>'}).join('')+'</div>':'')+
         '<div class="peek-acts">'+
           (item.l?'<a href="'+esc(item.l)+'" target="_blank" rel="noopener">市府原始問答頁 ↗</a>':'<span></span>')+
           '<span style="flex:1"></span><span style="color:var(--dim);font-size:12px">按上方「📝 出題」產生對話腳本</span>'+
@@ -769,10 +805,13 @@ function renderTopics(){
   var mk=el('btn-make');mk.disabled=!S.peek;
   mk.title=S.peek?'以「'+S.peek.q+'」產生對話腳本':'先在下方點一題看內容，再按這裡產生對話腳本';
   el('topic-list').innerHTML=html||'<div class="empty">'+(ts.length?'全題庫找不到「'+esc(ts.join(' '))+'」，換個關鍵字試試':'請先在左邊選局處，或用上方搜尋找題目')+'</div>';
-  el('topic-count').textContent=ts.length?
-    '全題庫符合 '+num(items.length)+' 題'+(items.length>=LIM?'（只列前 '+LIM+' 題，請再加關鍵字）':''):
-    (S.browse?S.browse.org+' · 共 '+num(items.length)+' 題 · 點一題看完整內容，按「出題」才產生腳本':'');
-  keepCurrentInView();
+  el('topic-count').textContent=locked?'🔒 已鎖定這題，點標題或「收合」回到清單':ts.length?
+    '全題庫符合 '+num(total)+' 題'+(total>=LIM?'（只列前 '+LIM+' 題，請再加關鍵字）':''):
+    (S.browse?S.browse.org+' · 共 '+num(total)+' 題 · 點一題看完整內容，按「出題」才產生腳本':'');
+  var host=el('topic-list');
+  if(locked)host.scrollTop=0;
+  else if(S.keepTop!=null){host.scrollTop=S.keepTop;S.keepTop=null}
+  else keepCurrentInView();
 }
 /* 點條文先就地展開完整內容，按「出題」才產生腳本 */
 function peekItem(orgName,q){
@@ -782,6 +821,7 @@ function peekItem(orgName,q){
   for(i=0;i<org.items.length;i++)if(org.items[i].q===q){it=org.items[i];break}
   if(!it)return;
   if(S.peek===it){S.peek=null;renderTopics();return}
+  if(!S.peek)S.keepTop=el('topic-list').scrollTop;
   S.peek=it;renderTopics();
   ensureOrg(org,function(){if(S.peek===it)renderTopics()});
 }
@@ -987,7 +1027,7 @@ function csLoadBank(cb){
 function csOpts(){
   var lv=[],ty=[],i,b=document.querySelectorAll('#cs-lv input:checked,#cs-ty input:checked');
   for(i=0;i<b.length;i++)(b[i].closest('#cs-lv')?lv:ty).push(b[i].value);
-  return {n:Math.max(1,Math.min(300,parseInt(el('cs-n').value,10)||20)),lv:lv,ty:ty,org:el('cs-org').value,
+  return {n:Math.max(1,Math.min(3000,parseInt(el('cs-n').value,10)||20)),lv:lv,ty:ty,org:el('cs-org').value,
     bench:el('cs-bench').checked,rule:el('cs-rule').checked};
 }
 function csMatch(q,o){
@@ -1250,7 +1290,8 @@ function init(){
 function boot(){
   fetch('data/index.json').then(function(r){
     if(!r.ok)throw new Error(r.status);return r.json();
-  }).then(function(meta){buildIndex(meta);init();},function(){
+  }).then(function(meta){buildIndex(meta);init();
+    csLoadBank(function(){AIQ=null;renderTopics();if(S.item)rebuild();});},function(){
     el('cur-q').textContent='題庫載入失敗，請確認網路後重新整理';
     el('ov').textContent='載入失敗';
   });
