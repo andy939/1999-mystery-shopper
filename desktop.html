@@ -261,7 +261,7 @@ section[data-page="cs"]>.card.fill{padding:8px 10px}
   body{display:block;overflow:visible;background:#fff}
   .topbar,.side,.pager,.cur .acts,section[data-page="pick"]{display:none!important}
   .layout{display:block;padding:0}
-  section[data-page]{display:block!important;margin-bottom:12px}
+  section[data-page]{margin-bottom:12px}
   .card{break-inside:auto;border-color:#999}
   .scroll{overflow:visible}
 }
@@ -302,8 +302,8 @@ section[data-page="cs"]>.card.fill{padding:8px 10px}
     <div class="acts">
       <span class="said" id="said"></span>
       <button class="ghost sm" id="btn-reroll" title="同一題換一套說法">換說法</button>
-      <button class="ghost sm" id="btn-copy">複製腳本</button>
-      <button class="ghost sm" id="btn-print">列印／PDF</button>
+      <button class="ghost sm" id="btn-copy" title="只複製目前這一頁">複製本頁</button>
+      <button class="ghost sm" id="btn-print" title="只列印目前這一頁，也可另存 PDF">列印本頁</button>
     </div>
   </div>
 
@@ -984,31 +984,29 @@ function lineHTML(o){
 
 /* ================= 複製 ================= */
 function unem(t){return String(t).replace(/<em>/g,'').replace(/<\/em>/g,'')}
+/* 複製／列印只輸出目前這一頁（對話腳本、追問清單、標準答案或 FAQ 來源） */
 function plainScript(){
   if(!S.item)return '';
-  var item=S.item,p=PERSONAS[S.persona],L=LEVELS[S.level],W=WINDOWS[S.win],i,j;
-  var out=['1999 秘密客測試腳本','局處：'+S.org.org+'（'+item.u+'）','題目：'+item.q,
-    '情境：'+L.n+'｜身分：'+p.n+'｜時段：'+W.n+'｜腳本編號 #'+S.seed,'',
-    '【完整對話模擬（正常情境）】※「員」為由標準答案組成的正解版，用來比對落差'];
-  for(i=0;i<S.dl.length;i++){
-    out.push(S.dl[i].who+'：'+unem(S.dl[i].t)+(S.dl[i].mark?'　〔'+S.dl[i].mark+'〕':''));
-    if(S.dl[i].cite)out.push('      ↳ 依據：'+S.dl[i].cite);
+  var item=S.item,p=PERSONAS[S.persona],L=LEVELS[S.level],W=WINDOWS[S.win],i,pg=S.page;
+  var out=['1999 秘密客測試腳本｜'+S.org.org+'（'+item.u+'）','題目：'+item.q,
+    '情境：'+L.n+'｜身分：'+p.n+'｜時段：'+W.n+'｜腳本編號 #'+S.seed,''];
+  if(pg==='probe'){
+    out.push('【追問清單】');
+    for(i=0;i<S.pr.length;i++)
+      out.push((i+1)+'. 「'+S.pr[i].q+'」','   正解應含：'+(S.pr[i].ans||'標準答案未載明——聽專員是否誠實說「確認後回電」'));
+  }else if(pg==='key'){
+    out.push('【標準答案全要點】');
+    var kp=keyPoints(item.a);
+    for(i=0;i<kp.length;i++)out.push((i+1)+'. '+kp[i]);
+  }else if(pg==='src'){
+    out.push('【參考 FAQ 出處】','・主題：'+cite(item)+(item.l?'\n  '+item.l:''));
+    var rel=relatedFor(item);
+    for(i=0;i<rel.length;i++)out.push('・'+(i<2?'延伸':'備用')+'：'+cite(rel[i])+(rel[i].l?'\n  '+rel[i].l:''));
+  }else{
+    out.push('【對話腳本】客＝你要念的台詞；員＝專員正解版');
+    for(i=0;i<S.dl.length;i++)out.push(S.dl[i].who+'：'+unem(S.dl[i].t).replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&amp;/g,'&'));
   }
-  out.push('','要測出什麼：'+L.test,'情境設計：'+L.design,'','【追問清單】');
-  for(i=0;i<S.pr.length;i++){
-    out.push((i+1)+'. 「'+S.pr[i].q+'」（'+S.pr[i].kind+'）','   測什麼：'+S.pr[i].why,
-      '   正解應含：'+(S.pr[i].ans||'標準答案未載明——聽專員是否誠實說「確認後回電」'),
-      '   依據 FAQ：'+(S.pr[i].src?cite(S.pr[i].src):'無（純服務行為觀察題）'));
-  }
-  out.push('','【標準答案全要點（對照用）】');
-  var kp=keyPoints(item.a);
-  for(i=0;i<kp.length;i++)out.push((i+1)+'. '+kp[i]);
-  out.push('','【本腳本參考的 FAQ 出處】','・主題：'+cite(item)+(item.l?'\n  '+item.l:''));
-  var rel=relatedFor(item);
-  for(i=0;i<rel.length;i++)
-    out.push('・'+(i<2?'延伸追問':'備用題')+'：'+cite(rel[i])+(rel[i].l?'\n  '+rel[i].l:''));
-  out.push('','題庫：'+DATA.source+'（'+DATA.generated+' 更新，共 '+DATA.totalFaq+' 題）');
-  return out.filter(function(x){return x!==null}).join('\n');
+  return out.join('\n');
 }
 function copy(text,msg){
   function done(){flash('said',msg)}
@@ -1309,7 +1307,7 @@ function init(){
     if(!S.browse&&!S.org){flash('said','請先選一個局處');return}randomPick(true);});
   el('btn-reroll').addEventListener('click',function(){
     S.seed=1000+Math.floor(Math.random()*9000);rebuild();flash('said','換了說法 · 腳本 #'+S.seed);});
-  el('btn-copy').addEventListener('click',function(){copy(plainScript(),'整份腳本已複製')});
+  el('btn-copy').addEventListener('click',function(){copy(plainScript(),'本頁內容已複製')});
   el('btn-print').addEventListener('click',function(){window.print()});
   /* 鍵盤：Alt+1～5 切分頁 */
   document.addEventListener('keydown',function(e){
