@@ -329,7 +329,7 @@ tr.cslock td{background:#eef4fd;color:var(--navy);font-size:12.5px;padding:6px 1
     <div class="card" style="flex:none">
       <div class="row csbar">
         <div><label for="cs-n">出幾題</label><input id="cs-n" type="number" min="1" max="300" value="20" style="width:58px"></div>
-        <div><label for="cs-org">局處</label><select id="cs-org" style="width:170px"></select></div>
+        <div><label for="cs-org">局處</label><select id="cs-org" style="width:134px"></select></div>
         <div><label>難度 <span class="qm" tabindex="0" data-tip="L0 關鍵詞：只打這則 FAQ 的重點關鍵詞（專有名詞、業務名稱、事件，可空白分隔多個），測最基本的檢索&#10;L1 直述：接近 FAQ 標題的問法&#10;L2 口語改寫：生活化講法&#10;L3 情境＋條件判斷：給年齡、身分、日期等條件&#10;L4 一次問多件事，或夾帶錯誤前提&#10;&#10;都不勾＝不限">?</span></label>
           <div class="cks" id="cs-lv"><label class="ck"><input type="checkbox" value="L0"> L0</label><label class="ck"><input type="checkbox" value="L1"> L1</label><label class="ck"><input type="checkbox" value="L2"> L2</label><label class="ck"><input type="checkbox" value="L3"> L3</label><label class="ck"><input type="checkbox" value="L4"> L4</label></div></div>
         <div><label>題型 <span class="qm" tabindex="0" data-tip="關鍵詞：L0 題，只打重點關鍵詞，應找到這則 FAQ&#10;口語情境：帶生活情境的講法&#10;多意圖：一句話問兩件事，兩則 FAQ 都要答到&#10;錯誤前提：民眾說錯，客服應先更正&#10;用詞落差：講法跟 FAQ 標題差很遠&#10;條件判斷：要套用 FAQ 裡的資格條件&#10;時效：有年度、日期的內容&#10;無答案：非市府權責，應轉介、不可編造&#10;&#10;都不勾＝不限">?</span></label>
@@ -1157,7 +1157,8 @@ function csCopy(){
 }
 function csInit(){
   var h='<option value="">全部局處</option>',i;
-  for(i=0;i<ORGS.length;i++)h+='<option>'+esc(ORGS[i].org)+'</option>';
+  for(i=0;i<ORGS.length;i++){var on=ORGS[i].org;
+    h+='<option value="'+esc(on)+'" title="'+esc(on)+'">'+esc(on.length>6?on.slice(0,6)+'…':on)+'</option>';}
   el('cs-org').innerHTML=h;
   el('cs-ty').innerHTML=CS_TYPES.map(function(t){return '<label class="ck"><input type="checkbox" value="'+t+'"> '+t+'</label>'}).join('');
   el('cs-go').addEventListener('click',csGenerate);
