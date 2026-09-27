@@ -217,7 +217,12 @@ table.cs th+th,table.cs td+td{border-left:1px solid var(--line)}
 td.csq{width:40em;max-width:40em;font-weight:600;line-height:1.55}
 td.csf{color:#374151;line-height:1.55;white-space:pre-line}
 tr.csdet td{background:#fafbfc}
-tr.cslock td{background:#eef4fd;color:var(--navy);font-size:12.5px;padding:6px 10px}
+table.cs th{z-index:2}
+table.cs.locked tr.csrow.on td{position:sticky;top:var(--thh,34px);z-index:1;box-shadow:0 1px 0 var(--line)}
+table.cs.locked .csbody{max-height:none;overflow:visible}
+.lockhint{margin-left:12px;font-weight:400;color:var(--navy)}
+section[data-page="cs"]{gap:8px}
+section[data-page="cs"]>.card.fill{padding:8px 10px}
 .csans{padding:4px 2px 8px;max-width:980px}
 .csans b{font-size:12px;color:var(--dim)}
 .csav{color:var(--danger);font-size:12.5px;margin:3px 0}
@@ -1096,11 +1101,9 @@ function csTitleText(q){
 function csRender(){
   var h='',i;
   if(!CS.set.length){el('cs-list').innerHTML='<div class="empty">設定好條件後按「🎲 產生測試題」</div>';el('cs-count').textContent='';return}
-  var cnt={};for(i=0;i<CS.set.length;i++)cnt[CS.set[i].lv]=(cnt[CS.set[i].lv]||0)+1;
+  var f=CS.focus,cnt={};for(i=0;i<CS.set.length;i++)cnt[CS.set[i].lv]=(cnt[CS.set[i].lv]||0)+1;
   el('cs-count').textContent=CS.set.length+' 題 · '+['L0','L1','L2','L3','L4'].filter(function(k){return cnt[k]}).map(function(k){return k+' '+cnt[k]}).join('、');
-  h='<div class="wrap"><table class="cs"><thead><tr><th>#</th><th>難度</th><th>題型</th><th>題目</th><th>對應 FAQ</th></tr></thead><tbody>';
-  var f=CS.focus;
-  if(f!=null)h+='<tr class="cslock"><td colspan="5">🔒 已鎖定第 '+CS.set[f].no+' 題，其他題先收起來；<b>點題目列</b>回到清單</td></tr>';
+  h='<div class="wrap"><table class="cs'+(f!=null?' locked':'')+'"><thead><tr><th>#</th><th>難度</th><th>題型</th><th>題目'+(f!=null?'<span class="lockhint">🔒 已鎖定這題，點題目列回到清單</span>':'')+'</th><th>對應 FAQ</th></tr></thead><tbody>';
   for(i=(f!=null?f:0);i<(f!=null?f+1:CS.set.length);i++){
     var q=CS.set[i];
     h+='<tr class="csrow'+(f===i?' on':'')+'" data-cs="'+i+'"><td class="num">'+q.no+'</td>'+
@@ -1119,6 +1122,7 @@ function csRender(){
     }
   }
   el('cs-list').innerHTML=h+'</tbody></table></div>';
+  var th=el('cs-list').querySelector('thead');if(th)el('cs-list').style.setProperty('--thh',th.offsetHeight+'px');
 }
 
 /* ---- 匯出 Excel（SheetJS，按下才載入） ---- */
