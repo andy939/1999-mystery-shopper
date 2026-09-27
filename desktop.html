@@ -210,8 +210,9 @@ table.cs td{font-size:13px}
 .csrow{cursor:pointer}
 .csrow:hover td{background:#fafbfc}
 .csrow.on td{background:var(--soft)}
-td.csq{min-width:260px;font-weight:600;line-height:1.55}
-td.csp{font-size:12px;color:#4b5563;min-width:150px;max-width:260px}
+table.cs th+th,table.cs td+td{border-left:1px solid var(--line)}
+td.csq{width:40em;max-width:40em;font-weight:600;line-height:1.55}
+td.csf{color:#374151;line-height:1.55;white-space:pre-line}
 tr.csdet td{background:#fafbfc}
 .csans{padding:4px 2px 8px;max-width:980px}
 .csans b{font-size:12px;color:var(--dim)}
@@ -1093,18 +1094,17 @@ function csRender(){
   if(!CS.set.length){el('cs-list').innerHTML='<div class="empty">設定好條件後按「🎲 產生測試題」</div>';el('cs-count').textContent='';return}
   var cnt={};for(i=0;i<CS.set.length;i++)cnt[CS.set[i].lv]=(cnt[CS.set[i].lv]||0)+1;
   el('cs-count').textContent=CS.set.length+' 題 · '+['L0','L1','L2','L3','L4'].filter(function(k){return cnt[k]}).map(function(k){return k+' '+cnt[k]}).join('、');
-  h='<div class="wrap"><table class="cs"><thead><tr><th>#</th><th>難度</th><th>題型</th><th>題目</th><th>應答要點</th><th>對應 FAQ</th></tr></thead><tbody>';
+  h='<div class="wrap"><table class="cs"><thead><tr><th>#</th><th>難度</th><th>題型</th><th>題目</th><th>對應 FAQ</th></tr></thead><tbody>';
   for(i=0;i<CS.set.length;i++){
     var q=CS.set[i];
     h+='<tr class="csrow'+(CS.open[i]?' on':'')+'" data-cs="'+i+'"><td class="num">'+q.no+'</td>'+
       '<td class="nw"><span class="badge">'+esc(q.lv)+'</span></td>'+
       '<td>'+q.type.map(function(t){return '<span class="badge gray">'+esc(t)+'</span>'}).join(' ')+
-      (q.src!=='AI'?' <span class="badge hot">'+esc(q.src)+'</span>':'')+'</td>'+
+      '</td>'+
       '<td class="csq">'+esc(q.q)+'</td>'+
-      '<td class="csp">'+(q.points||[]).map(esc).join('<br>')+'</td>'+
-      '<td class="csp">'+esc(csTitleText(q))+'</td></tr>';
+      '<td class="csf">'+esc(csTitleText(q))+'</td></tr>';
     if(CS.open[i]){
-      h+='<tr class="csdet"><td></td><td colspan="5"><div class="csans"><b>標準答案</b>'+
+      h+='<tr class="csdet"><td></td><td colspan="4"><div class="csans"><b>標準答案</b>'+
         (q.avoid&&q.avoid.length?'<div class="csav">不應出現：'+q.avoid.map(esc).join('、')+'</div>':'')+
         (q.note?'<div class="hint">出題用意：'+esc(q.note)+'</div>':'')+
         '<div class="csbody">'+esc(csAnswerText(q))+'</div>'+
