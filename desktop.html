@@ -107,7 +107,7 @@ button:disabled{opacity:.45;cursor:default;filter:none}
 .said{color:var(--deep);font-size:12.5px;font-weight:600;align-self:center}
 
 /* 選題：左局處、右題目，兩邊各自捲動 */
-.faqgrid{flex:1;min-height:0;display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px}
+.faqgrid{flex:1;min-height:0;display:grid;grid-template-columns:172px minmax(0,1fr);gap:16px}
 .orgs{border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;
       min-height:0}
 .orgs h4{margin:2px 6px 8px;font-size:12px;color:var(--dim);font-weight:600}
@@ -129,6 +129,11 @@ button:disabled{opacity:.45;cursor:default;filter:none}
 .item.on{border-color:var(--accent);background:var(--soft)}
 .item h3{font-size:14px;font-weight:600;line-height:1.45}
 .meta2{font-size:12px;color:var(--dim);margin-top:3px;display:flex;flex-wrap:wrap;gap:10px}
+.item.open{border-color:var(--accent);cursor:default}
+.item.open h3{font-size:15px;cursor:pointer}
+.peek{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.peek .ans{font-size:13.5px;line-height:1.75;white-space:pre-wrap;max-height:48vh;overflow:auto;cursor:text;user-select:text}
+.peek-acts{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px}
 mark{background:#ffe9a8;border-radius:2px}
 .empty{padding:30px 10px;color:var(--dim);text-align:center}
 
@@ -714,7 +719,7 @@ function renderOrgs(){
     if(ts.length){c=0;for(var j=0;j<o.items.length;j++)if(hitAll(o.items[j].q,ts))c++;if(!c)continue}
     n++;
     html+='<button data-org="'+esc(o.org)+'" class="'+(S.browse&&S.browse.org===o.org&&!ts.length?'on':'')+
-      '" title="'+esc(o.org)+'"><span>'+esc(o.org)+'</span><b>'+num(c)+'</b></button>';
+      '" title="'+esc(o.org)+'"><span>'+esc(o.org.length>6?o.org.slice(0,6)+'…':o.org)+'</span><b>'+num(c)+'</b></button>';
   }
   el('org-list').innerHTML=html||'<div class="empty">沒有符合的局處</div>';
   el('org-count').textContent='（'+n+(n!==ORGS.length?'／'+ORGS.length:'')+' 局處）';
@@ -729,22 +734,40 @@ function renderTopics(){
     }
   }else if(S.browse){for(i=0;i<S.browse.items.length;i++)items.push([S.browse,S.browse.items[i]]);}
   for(i=0;i<items.length;i++){
-    var org=items[i][0],item=items[i][1];
-    html+='<div class="item'+(S.item===item?' on':'')+'" data-org="'+esc(org.org)+'" data-q="'+esc(item.q)+'">'+
+    var org=items[i][0],item=items[i][1],open=S.peek===item;
+    html+='<div class="item'+(S.item===item?' on':'')+(open?' open':'')+'" data-org="'+esc(org.org)+'" data-q="'+esc(item.q)+'">'+
       '<h3>'+hl(item.q,ts)+'</h3><div class="meta2">'+
-      (ts.length?'<span>'+esc(org.org)+'</span>':'')+
+      (ts.length||open?'<span>'+esc(org.org)+'</span>':'')+
       '<span>'+esc(item.u)+'</span><span>'+esc(item.t)+'</span><span>點閱 '+num(item.h)+'</span>'+
       (item.d?'<span>發布 '+esc(item.d)+'</span>':'')+
-      (item.h>=200000?'<span class="badge hot">熱門</span>':'')+'</div></div>';
+      (item.h>=200000?'<span class="badge hot">熱門</span>':'')+'</div>'+
+      (open?'<div class="peek">'+
+        '<div class="ans">'+(item.a===null?'答覆載入中…':item.a?esc(item.a):'（此題沒有答覆內容）')+'</div>'+
+        '<div class="peek-acts">'+
+          (item.l?'<a href="'+esc(item.l)+'" target="_blank" rel="noopener">市府原始問答頁 ↗</a>':'<span></span>')+
+          '<span style="flex:1"></span><button class="ghost sm" data-close="1">收合</button>'+
+          '<button class="sm" data-make="1">📝 出題：產生對話腳本</button></div></div>':'')+
+      '</div>';
   }
   el('topic-list').innerHTML=html||'<div class="empty">'+(ts.length?'全題庫找不到「'+esc(ts.join(' '))+'」，換個關鍵字試試':'請先在左邊選局處，或用上方搜尋找題目')+'</div>';
   el('topic-count').textContent=ts.length?
     '全題庫符合 '+num(items.length)+' 題'+(items.length>=LIM?'（只列前 '+LIM+' 題，請再加關鍵字）':''):
-    (S.browse?S.browse.org+' · 共 '+num(items.length)+' 題 · 點一題就產生腳本':'');
+    (S.browse?S.browse.org+' · 共 '+num(items.length)+' 題 · 點一題看完整內容，按「出題」才產生腳本':'');
   keepCurrentInView();
 }
+/* 點條文先就地展開完整內容，按「出題」才產生腳本 */
+function peekItem(orgName,q){
+  var org=null,it=null,i;
+  for(i=0;i<ORGS.length;i++)if(ORGS[i].org===orgName){org=ORGS[i];break}
+  if(!org)return;
+  for(i=0;i<org.items.length;i++)if(org.items[i].q===q){it=org.items[i];break}
+  if(!it)return;
+  if(S.peek===it){S.peek=null;renderTopics();return}
+  S.peek=it;renderTopics();
+  ensureOrg(org,function(){if(S.peek===it)renderTopics()});
+}
 function keepCurrentInView(){
-  var host=el('topic-list'),cur=host.querySelector('.item.on');
+  var host=el('topic-list'),cur=host.querySelector('.item.open')||host.querySelector('.item.on');
   if(!cur){host.scrollTop=0;return}
   var top=cur.offsetTop-host.offsetTop-(host.clientHeight/2)+(cur.offsetHeight/2);
   host.scrollTop=top>0?top:0;
@@ -1169,9 +1192,13 @@ function init(){
   el('org-list').addEventListener('click',function(e){
     var b=e.target.closest('[data-org]');if(b)selectOrg(b.getAttribute('data-org'));});
   el('topic-list').addEventListener('click',function(e){
-    var b=e.target.closest('[data-q]');
-    if(b){S.seed=1000+Math.floor(Math.random()*9000);
-      selectItem(b.getAttribute('data-org'),b.getAttribute('data-q'),'dlg');}});
+    var b=e.target.closest('[data-q]');if(!b)return;
+    if(e.target.closest('a'))return;
+    if(e.target.closest('.peek')&&!e.target.closest('button'))return;   /* 展開區可選取文字，不收合 */
+    if(e.target.closest('[data-close]')){S.peek=null;renderTopics();return}
+    if(e.target.closest('[data-make]')){S.seed=1000+Math.floor(Math.random()*9000);S.peek=null;
+      selectItem(b.getAttribute('data-org'),b.getAttribute('data-q'),'dlg');return}
+    peekItem(b.getAttribute('data-org'),b.getAttribute('data-q'));});
   el('p-probe').addEventListener('change',function(e){
     var k=e.target.getAttribute('data-ask');if(k===null)return;
     S.asked[k]=e.target.checked;e.target.closest('.probe').classList.toggle('done',e.target.checked);});
