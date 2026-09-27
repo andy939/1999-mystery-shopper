@@ -279,12 +279,13 @@ tr.csdet td{background:#fafbfc}
   <section data-page="pick" hidden>
     <div class="card" style="flex:none">
       <div class="row">
-        <div><label for="f-persona">秘密客身分 <span class="qm" id="qm-persona" tabindex="0">?</span></label><select id="f-persona" style="width:190px"></select></div>
-        <div><label for="f-level">情境難度 <span class="qm" id="qm-level" tabindex="0">?</span></label><select id="f-level" style="width:150px"></select></div>
-        <div style="flex:1;min-width:220px"><label for="f-search">全題庫搜尋（空白分隔多個詞）</label>
-          <input id="f-search" type="search" placeholder="拖吊、特休、房屋稅…" style="width:100%"></div>
-        <button class="ghost" id="btn-random-org" title="保留上面選的身分與難度，在左邊選中的局處內抽一題">🎲 本局處抽一題</button>
-        <button id="btn-random" title="題目、身分、難度全部隨機">🎲 全隨機抽一題</button>
+        <div><label for="f-persona">秘密客身分 <span class="qm" id="qm-persona" tabindex="0">?</span></label><select id="f-persona" style="width:166px"></select></div>
+        <div><label for="f-level">情境難度 <span class="qm" id="qm-level" tabindex="0">?</span></label><select id="f-level" style="width:128px"></select></div>
+        <div><label for="f-search">全題庫搜尋（空白分隔多個詞）</label>
+          <input id="f-search" type="search" placeholder="拖吊、特休、房屋稅…" style="width:232px"></div>
+        <button id="btn-make" disabled title="先在下方點一題看內容，再按這裡產生對話腳本">📝 出題</button>
+        <button class="ghost" id="btn-random-org" title="保留上面選的身分與難度，在左邊選中的局處內抽一題">🎲 本局抽題</button>
+        <button class="ghost" id="btn-random" title="題目、身分、難度全部隨機">🎲 隨機抽題</button>
       </div>
 
     </div>
@@ -745,10 +746,12 @@ function renderTopics(){
         '<div class="ans">'+(item.a===null?'答覆載入中…':item.a?esc(item.a):'（此題沒有答覆內容）')+'</div>'+
         '<div class="peek-acts">'+
           (item.l?'<a href="'+esc(item.l)+'" target="_blank" rel="noopener">市府原始問答頁 ↗</a>':'<span></span>')+
-          '<span style="flex:1"></span><button class="ghost sm" data-close="1">收合</button>'+
-          '<button class="sm" data-make="1">📝 出題：產生對話腳本</button></div></div>':'')+
+          '<span style="flex:1"></span><span style="color:var(--dim);font-size:12px">按上方「📝 出題」產生對話腳本</span>'+
+          '<button class="ghost sm" data-close="1">收合</button></div></div>':'')+
       '</div>';
   }
+  var mk=el('btn-make');mk.disabled=!S.peek;
+  mk.title=S.peek?'以「'+S.peek.q+'」產生對話腳本':'先在下方點一題看內容，再按這裡產生對話腳本';
   el('topic-list').innerHTML=html||'<div class="empty">'+(ts.length?'全題庫找不到「'+esc(ts.join(' '))+'」，換個關鍵字試試':'請先在左邊選局處，或用上方搜尋找題目')+'</div>';
   el('topic-count').textContent=ts.length?
     '全題庫符合 '+num(items.length)+' 題'+(items.length>=LIM?'（只列前 '+LIM+' 題，請再加關鍵字）':''):
@@ -1196,8 +1199,6 @@ function init(){
     if(e.target.closest('a'))return;
     if(e.target.closest('.peek')&&!e.target.closest('button'))return;   /* 展開區可選取文字，不收合 */
     if(e.target.closest('[data-close]')){S.peek=null;renderTopics();return}
-    if(e.target.closest('[data-make]')){S.seed=1000+Math.floor(Math.random()*9000);S.peek=null;
-      selectItem(b.getAttribute('data-org'),b.getAttribute('data-q'),'dlg');return}
     peekItem(b.getAttribute('data-org'),b.getAttribute('data-q'));});
   el('p-probe').addEventListener('change',function(e){
     var k=e.target.getAttribute('data-ask');if(k===null)return;
@@ -1209,6 +1210,13 @@ function init(){
   el('f-search').addEventListener('input',function(){clearTimeout(st);
     st=setTimeout(function(){renderOrgs();renderTopics()},150);});
   el('orgq').addEventListener('input',renderOrgs);
+  el('btn-make').addEventListener('click',function(){
+    if(!S.peek)return;
+    var it=S.peek,org=null,i;
+    for(i=0;i<ORGS.length&&!org;i++)if(ORGS[i].items.indexOf(it)>=0)org=ORGS[i];
+    if(!org)return;
+    S.seed=1000+Math.floor(Math.random()*9000);S.peek=null;
+    selectItem(org.org,it.q,'dlg');});
   el('btn-random').addEventListener('click',function(){randomPick(false)});
   el('btn-random-org').addEventListener('click',function(){
     if(!S.browse&&!S.org){flash('said','請先選一個局處');return}randomPick(true);});
