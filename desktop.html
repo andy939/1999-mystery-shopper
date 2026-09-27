@@ -199,13 +199,16 @@ td.nw{white-space:nowrap}
 .cks{display:flex;flex-wrap:wrap;gap:4px 12px;padding-top:6px}
 label.ck{display:inline-flex;align-items:center;gap:4px;margin:0;font-size:13px;color:var(--ink);cursor:pointer}
 label.ck input{padding:0;width:15px;height:15px;accent-color:var(--accent)}
-.csbar{align-items:flex-start;row-gap:12px}
+.csbar{display:grid;grid-template-columns:auto auto auto minmax(0,1fr);grid-template-areas:"n o l t" "a a a t";gap:10px 12px;align-items:start}
+.csbar>div:nth-child(1){grid-area:n}.csbar>div:nth-child(2){grid-area:o}.csbar>div:nth-child(3){grid-area:l}.csbar>div:nth-child(4){grid-area:t}
 .csbar>div>label:not(.ck){height:20px;display:flex;align-items:center;gap:4px;margin-bottom:4px}
 #cs-n{-moz-appearance:textfield}#cs-n::-webkit-inner-spin-button,#cs-n::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-.csacts{flex:0 0 100%;display:flex;align-items:center;gap:10px}
+.csacts{grid-area:a;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
 .csacts .btns{display:flex;gap:10px}
 .csacts .msg{display:flex;gap:10px;font-size:12.5px;margin-left:6px}
 .csacts .cnt{color:var(--dim);white-space:nowrap}
+.csbar .cks{gap:4px 10px}
+.csbar label.ck{gap:3px}
 table.cs td{font-size:13px}
 .csrow{cursor:pointer}
 .csrow:hover td{background:#fafbfc}
@@ -214,6 +217,7 @@ table.cs th+th,table.cs td+td{border-left:1px solid var(--line)}
 td.csq{width:40em;max-width:40em;font-weight:600;line-height:1.55}
 td.csf{color:#374151;line-height:1.55;white-space:pre-line}
 tr.csdet td{background:#fafbfc}
+tr.cslock td{background:#eef4fd;color:var(--navy);font-size:12.5px;padding:6px 10px}
 .csans{padding:4px 2px 8px;max-width:980px}
 .csans b{font-size:12px;color:var(--dim)}
 .csav{color:var(--danger);font-size:12.5px;margin:3px 0}
@@ -328,7 +332,7 @@ tr.csdet td{background:#fafbfc}
         <div><label for="cs-org">局處</label><select id="cs-org" style="width:170px"></select></div>
         <div><label>難度 <span class="qm" tabindex="0" data-tip="L0 關鍵詞：只打這則 FAQ 的重點關鍵詞（專有名詞、業務名稱、事件，可空白分隔多個），測最基本的檢索&#10;L1 直述：接近 FAQ 標題的問法&#10;L2 口語改寫：生活化講法&#10;L3 情境＋條件判斷：給年齡、身分、日期等條件&#10;L4 一次問多件事，或夾帶錯誤前提&#10;&#10;都不勾＝不限">?</span></label>
           <div class="cks" id="cs-lv"><label class="ck"><input type="checkbox" value="L0"> L0</label><label class="ck"><input type="checkbox" value="L1"> L1</label><label class="ck"><input type="checkbox" value="L2"> L2</label><label class="ck"><input type="checkbox" value="L3"> L3</label><label class="ck"><input type="checkbox" value="L4"> L4</label></div></div>
-        <div style="flex:1;min-width:0"><label>題型 <span class="qm" tabindex="0" data-tip="關鍵詞：L0 題，只打重點關鍵詞，應找到這則 FAQ&#10;口語情境：帶生活情境的講法&#10;多意圖：一句話問兩件事，兩則 FAQ 都要答到&#10;錯誤前提：民眾說錯，客服應先更正&#10;用詞落差：講法跟 FAQ 標題差很遠&#10;條件判斷：要套用 FAQ 裡的資格條件&#10;時效：有年度、日期的內容&#10;無答案：非市府權責，應轉介、不可編造&#10;&#10;都不勾＝不限">?</span></label>
+        <div><label>題型 <span class="qm" tabindex="0" data-tip="關鍵詞：L0 題，只打重點關鍵詞，應找到這則 FAQ&#10;口語情境：帶生活情境的講法&#10;多意圖：一句話問兩件事，兩則 FAQ 都要答到&#10;錯誤前提：民眾說錯，客服應先更正&#10;用詞落差：講法跟 FAQ 標題差很遠&#10;條件判斷：要套用 FAQ 裡的資格條件&#10;時效：有年度、日期的內容&#10;無答案：非市府權責，應轉介、不可編造&#10;&#10;都不勾＝不限">?</span></label>
           <div class="cks" id="cs-ty"></div></div>
         <div class="csacts">
           <div class="btns"><button class="ghost" id="cs-copy" title="只複製題目，方便貼給智能客服">複製題目</button>
@@ -1055,7 +1059,7 @@ function csGenerate(){
       }
     }
     CS.set=set.map(function(q,k){var c={};for(var p in q)c[p]=q[p];c.no=k+1;return c});
-    CS.open={};
+    CS.focus=null;
     csFill(function(){csRender();
       var short=o.n-CS.set.length;
       flash('cs-said','產生 '+CS.set.length+' 題'+(short>0?'（符合條件的只有這些，可放寬條件或勾「規則補題」）':''));});
@@ -1095,15 +1099,17 @@ function csRender(){
   var cnt={};for(i=0;i<CS.set.length;i++)cnt[CS.set[i].lv]=(cnt[CS.set[i].lv]||0)+1;
   el('cs-count').textContent=CS.set.length+' 題 · '+['L0','L1','L2','L3','L4'].filter(function(k){return cnt[k]}).map(function(k){return k+' '+cnt[k]}).join('、');
   h='<div class="wrap"><table class="cs"><thead><tr><th>#</th><th>難度</th><th>題型</th><th>題目</th><th>對應 FAQ</th></tr></thead><tbody>';
-  for(i=0;i<CS.set.length;i++){
+  var f=CS.focus;
+  if(f!=null)h+='<tr class="cslock"><td colspan="5">🔒 已鎖定第 '+CS.set[f].no+' 題，其他題先收起來；<b>點題目列</b>回到清單</td></tr>';
+  for(i=(f!=null?f:0);i<(f!=null?f+1:CS.set.length);i++){
     var q=CS.set[i];
-    h+='<tr class="csrow'+(CS.open[i]?' on':'')+'" data-cs="'+i+'"><td class="num">'+q.no+'</td>'+
+    h+='<tr class="csrow'+(f===i?' on':'')+'" data-cs="'+i+'"><td class="num">'+q.no+'</td>'+
       '<td class="nw"><span class="badge">'+esc(q.lv)+'</span></td>'+
       '<td>'+q.type.map(function(t){return '<span class="badge gray">'+esc(t)+'</span>'}).join(' ')+
       '</td>'+
       '<td class="csq">'+esc(q.q)+'</td>'+
       '<td class="csf">'+esc(csTitleText(q))+'</td></tr>';
-    if(CS.open[i]){
+    if(f===i){
       h+='<tr class="csdet"><td></td><td colspan="4"><div class="csans"><b>標準答案</b>'+
         (q.avoid&&q.avoid.length?'<div class="csav">不應出現：'+q.avoid.map(esc).join('、')+'</div>':'')+
         (q.note?'<div class="hint">出題用意：'+esc(q.note)+'</div>':'')+
@@ -1160,7 +1166,9 @@ function csInit(){
   el('cs-list').addEventListener('click',function(e){
     if(e.target.closest('a'))return;
     var r=e.target.closest('[data-cs]');if(!r)return;
-    var k=r.getAttribute('data-cs');CS.open[k]=!CS.open[k];csRender();});
+    var k=+r.getAttribute('data-cs'),box=el('cs-list');
+    if(CS.focus===k){CS.focus=null;csRender();box.scrollTop=CS.keep||0;}
+    else{CS.keep=box.scrollTop;CS.focus=k;csRender();box.scrollTop=0;}});
   csRender();
 }
 
