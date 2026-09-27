@@ -1265,8 +1265,7 @@ function init(){
     if(last.persona&&PERSONAS[last.persona]){S.persona=last.persona;el('f-persona').value=S.persona}
     if(last.level&&LEVELS[last.level]){S.level=last.level;el('f-level').value=S.level}
   }
-  var page=ui&&ui.page&&document.querySelector('section[data-page="'+ui.page+'"]')?ui.page:'pick';
-  goPage(page);
+  goPage('cs');   /* 每次打開都先進選單最上面的「智能客服測題」 */
   /* 開網頁不自動出題：只打開上次瀏覽的局處，按「出題」才產生腳本 */
   S.browse=ALL;renderOrgs();renderTopics();syncSide();
 
