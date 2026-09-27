@@ -774,8 +774,12 @@ function hl(t,ts){
   return t.replace(new RegExp('('+pat.join('|')+')','g'),'<mark>$1</mark>');
 }
 function hitAll(q,ts){for(var i=0;i<ts.length;i++)if(q.indexOf(ts[i])<0)return false;return true}
+/* 「全部局處」：依點閱由高到低列出（只列前 300 題） */
+var ALL={org:'全部局處',all:true};
 function renderOrgs(){
   var kw=el('orgq').value.trim(),ts=terms(),html='',n=0,i;
+  if(!kw)html+='<button data-org="" class="'+(S.browse===ALL&&!ts.length?'on':'')+'" title="全部局處"><span>全部局處</span><b>'+
+    num(ts.length?ORGS.reduce(function(a,o){return a+o.items.filter(function(x){return hitAll(x.q,ts)}).length},0):DATA.totalFaq)+'</b></button>';
   for(i=0;i<ORGS.length;i++){
     var o=ORGS[i];
     if(kw&&o.org.indexOf(kw)<0)continue;
@@ -796,6 +800,9 @@ function renderTopics(){
       if(hitAll(it.q,ts))items.push([ORGS[i],it]);
       if(items.length>=LIM)break outer;
     }
+  }else if(S.browse===ALL){
+    for(i=0;i<ORGS.length;i++)for(j=0;j<ORGS[i].items.length;j++)items.push([ORGS[i],ORGS[i].items[j]]);
+    items.sort(function(a,b){return b[1].h-a[1].h});items=items.slice(0,LIM);
   }else if(S.browse){for(i=0;i<S.browse.items.length;i++)items.push([S.browse,S.browse.items[i]]);}
   /* 展開一題時鎖定：只留這一題，捲動不會跑到別題；點標題或「收合」回到清單原位置 */
   var locked=null;
@@ -827,7 +834,8 @@ function renderTopics(){
   el('topic-list').innerHTML=html||'<div class="empty">'+(ts.length?'全題庫找不到「'+esc(ts.join(' '))+'」，換個關鍵字試試':'請先在左邊選局處，或用上方搜尋找題目')+'</div>';
   el('topic-count').textContent=locked?'🔒 已鎖定這題，點標題或「收合」回到清單':ts.length?
     '全題庫符合 '+num(total)+' 題'+(total>=LIM?'（只列前 '+LIM+' 題，請再加關鍵字）':''):
-    (S.browse?S.browse.org+' · 共 '+num(total)+' 題 · 點一題看完整內容，按「出題」才產生腳本':'');
+    (S.browse===ALL?'全部局處 · 依點閱列前 '+num(total)+' 題（其他題請選局處或搜尋）· 點一題看完整內容，按「出題」才產生腳本':
+     S.browse?S.browse.org+' · 共 '+num(total)+' 題 · 點一題看完整內容，按「出題」才產生腳本':'');
   var host=el('topic-list');
   if(locked)host.scrollTop=0;
   else if(S.keepTop!=null){host.scrollTop=S.keepTop;S.keepTop=null}
@@ -852,6 +860,7 @@ function keepCurrentInView(){
   host.scrollTop=top>0?top:0;
 }
 function selectOrg(name){
+  if(!name)S.browse=ALL;
   for(var i=0;i<ORGS.length;i++)if(ORGS[i].org===name){S.browse=ORGS[i];break}
   el('f-search').value='';
   renderOrgs();renderTopics();
@@ -865,7 +874,7 @@ function selectItem(orgName,q,go){
   }
   if(!S.org)S.org=ORGS[0];
   var want=found||S.org.items[0];
-  S.browse=S.org;
+  if(S.browse!==ALL)S.browse=S.org;
   ensureOrg(S.org,function(){
     S.item=want;renderOrgs();renderTopics();rebuild();remember();
     if(go)goPage(go);
@@ -873,7 +882,8 @@ function selectItem(orgName,q,go){
 }
 function randomPick(orgOnly){
   var wsum=0,i,org=ORGS[0];
-  if(orgOnly&&(S.browse||S.org))org=S.browse||S.org;
+  if(orgOnly&&S.browse&&S.browse!==ALL)org=S.browse;
+  else if(orgOnly&&S.browse!==ALL&&S.org)org=S.org;
   else{
     for(i=0;i<ORGS.length;i++)wsum+=ORGS[i].total;
     var r=Math.random()*wsum,acc=0;
@@ -1258,8 +1268,7 @@ function init(){
   var page=ui&&ui.page&&document.querySelector('section[data-page="'+ui.page+'"]')?ui.page:'pick';
   goPage(page);
   /* 開網頁不自動出題：只打開上次瀏覽的局處，按「出題」才產生腳本 */
-  var bo=ORGS[0];if(last&&last.org)for(var bi=0;bi<ORGS.length;bi++)if(ORGS[bi].org===last.org)bo=ORGS[bi];
-  S.browse=bo;renderOrgs();renderTopics();syncSide();
+  S.browse=ALL;renderOrgs();renderTopics();syncSide();
 
   document.querySelector('.side').addEventListener('click',function(e){
     var b=e.target.closest('[data-page]');if(b)goPage(b.getAttribute('data-page'));});
@@ -1272,7 +1281,7 @@ function init(){
       S.seed=v;rebuild();}
   });
   el('org-list').addEventListener('click',function(e){
-    var b=e.target.closest('[data-org]');if(b)selectOrg(b.getAttribute('data-org'));});
+    var b=e.target.closest('button[data-org]');if(b)selectOrg(b.getAttribute('data-org'));});
   el('topic-list').addEventListener('click',function(e){
     var b=e.target.closest('[data-q]');if(!b)return;
     if(e.target.closest('a'))return;
