@@ -199,12 +199,12 @@ td.nw{white-space:nowrap}
 .cks{display:flex;flex-wrap:wrap;gap:4px 12px;padding-top:6px}
 label.ck{display:inline-flex;align-items:center;gap:4px;margin:0;font-size:13px;color:var(--ink);cursor:pointer}
 label.ck input{padding:0;width:15px;height:15px;accent-color:var(--accent)}
-.csbar{align-items:flex-start;flex-wrap:nowrap}
+.csbar{align-items:flex-start;row-gap:12px}
 .csbar>div>label:not(.ck){height:20px;display:flex;align-items:center;gap:4px;margin-bottom:4px}
 #cs-n{-moz-appearance:textfield}#cs-n::-webkit-inner-spin-button,#cs-n::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-.csacts{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;align-self:flex-end;margin-left:auto}
+.csacts{flex:0 0 100%;display:flex;align-items:center;gap:10px}
 .csacts .btns{display:flex;gap:10px}
-.csacts .msg{display:flex;gap:10px;min-height:18px;font-size:12.5px}
+.csacts .msg{display:flex;gap:10px;font-size:12.5px;margin-left:6px}
 .csacts .cnt{color:var(--dim);white-space:nowrap}
 table.cs td{font-size:13px}
 .csrow{cursor:pointer}
@@ -330,10 +330,10 @@ tr.csdet td{background:#fafbfc}
         <div style="flex:1;min-width:0"><label>題型 <span class="qm" tabindex="0" data-tip="關鍵詞：L0 題，只打重點關鍵詞，應找到這則 FAQ&#10;口語情境：帶生活情境的講法&#10;多意圖：一句話問兩件事，兩則 FAQ 都要答到&#10;錯誤前提：民眾說錯，客服應先更正&#10;用詞落差：講法跟 FAQ 標題差很遠&#10;條件判斷：要套用 FAQ 裡的資格條件&#10;時效：有年度、日期的內容&#10;無答案：非市府權責，應轉介、不可編造&#10;&#10;都不勾＝不限">?</span></label>
           <div class="cks" id="cs-ty"></div></div>
         <div class="csacts">
-          <div class="msg"><span class="said" id="cs-said"></span><span class="cnt" id="cs-count"></span></div>
           <div class="btns"><button class="ghost" id="cs-copy" title="只複製題目，方便貼給智能客服">複製題目</button>
           <button class="ghost" id="cs-xls" title="匯出的 Excel 前五欄與「FAQ系統調校之題目」相同">匯出 Excel</button>
           <button id="cs-go">🎲 產生測試題</button></div>
+          <div class="msg"><span class="cnt" id="cs-count"></span><span class="said" id="cs-said"></span></div>
         </div>
         <input type="checkbox" id="cs-bench" checked hidden><input type="checkbox" id="cs-rule" checked hidden>
       </div>
