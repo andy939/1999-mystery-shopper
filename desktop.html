@@ -125,17 +125,24 @@ button:disabled{opacity:.45;cursor:default;filter:none}
 .orgs button.on b{color:var(--deep)}
 .topics{display:flex;flex-direction:column;min-height:0}
 .topics .hint{margin:0 0 8px}
-#topic-list{flex:1;min-height:0;overflow:auto;padding-right:4px}
-.item{border:1px solid var(--line);border-radius:8px;padding:9px 13px;margin-bottom:7px;cursor:pointer}
-.item:hover{border-color:var(--accent)}
-.item.on{border-color:var(--accent);background:var(--soft)}
-.item h3{font-size:14px;font-weight:600;line-height:1.45}
-.meta2{font-size:12px;color:var(--dim);margin-top:3px;display:flex;flex-wrap:wrap;gap:10px}
-.item.open{border-color:var(--accent);cursor:default}
-.item.open h3{font-size:15px;cursor:pointer}
-.peek{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
-.peek .ans{font-size:13.5px;line-height:1.75;white-space:pre-wrap;cursor:text;user-select:text}
-.item.open h3{position:sticky;top:0;z-index:1;background:var(--card);margin:-9px -13px 0;padding:9px 13px 4px;border-radius:8px 8px 0 0}
+#topic-list{flex:1;min-height:0;overflow:auto;border:1px solid var(--line);border-radius:8px}
+/* 題目清單：表格式，一題一列、欄間框線 */
+.item,.thead{display:grid;grid-template-columns:minmax(0,1fr) 150px 72px 78px 100px;border-bottom:1px solid var(--line)}
+.item>*,.thead>*{padding:7px 10px;min-width:0}
+.item>*+*,.thead>*+*{border-left:1px solid var(--line)}
+.thead{position:sticky;top:0;z-index:2;background:var(--card);font-size:11.5px;color:var(--dim);font-weight:600}
+.item{cursor:pointer;font-size:12.5px;color:var(--dim)}
+.item:hover{background:#fafbfc}
+.item.on{background:var(--soft)}
+.item h3{font-size:13.5px;font-weight:600;line-height:1.5;color:var(--ink)}
+.item h3 .badge{margin-left:6px;font-size:11px;vertical-align:1px}
+.item .c{line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .c.num{text-align:right;font-variant-numeric:tabular-nums}
+.item.open{cursor:default;background:var(--soft)}
+.item.open h3{position:sticky;top:31px;z-index:1;background:var(--soft);cursor:pointer;font-size:14.5px}
+.item.open .c{position:sticky;top:31px;background:var(--soft)}
+.peek{grid-column:1/-1;border-left:0!important;padding:10px 14px 12px;background:var(--card);border-top:1px dashed var(--line)}
+.peek .ans{font-size:13.5px;line-height:1.75;white-space:pre-wrap;cursor:text;user-select:text;color:var(--ink)}
 .badge.ai{background:#e8f0fc;color:var(--navy)}
 .aiq{margin-top:10px;padding:8px 10px;background:#f5f8fd;border-radius:6px;font-size:13px;line-height:1.7}
 .aiq b{display:block;font-size:12px;color:var(--dim);margin-bottom:2px}
@@ -785,13 +792,14 @@ function renderTopics(){
   var total=items.length;if(locked)items=[locked];
   for(i=0;i<items.length;i++){
     var org=items[i][0],item=items[i][1],open=S.peek===item;
+    var un=String(item.u||'').replace(/^臺北市政府/,'');
     html+='<div class="item'+(S.item===item?' on':'')+(open?' open':'')+'" data-org="'+esc(org.org)+'" data-q="'+esc(item.q)+'">'+
-      '<h3>'+hl(item.q,ts)+'</h3><div class="meta2">'+
-      (ts.length||open?'<span>'+esc(org.org)+'</span>':'')+
-      '<span>'+esc(item.u)+'</span><span>'+esc(item.t)+'</span><span>點閱 '+num(item.h)+'</span>'+
-      (item.d?'<span>發布 '+esc(item.d)+'</span>':'')+
+      '<h3>'+hl(item.q,ts)+
       (item.h>=200000?'<span class="badge hot">熱門</span>':'')+
-      (aiFor(item).length?'<span class="badge ai">AI 題 '+aiFor(item).length+'</span>':'')+'</div>'+
+      (aiFor(item).length?'<span class="badge ai">AI 題 '+aiFor(item).length+'</span>':'')+'</h3>'+
+      '<div class="c" title="'+esc(org.org+'／'+item.u)+'">'+esc(un||org.org)+'</div>'+
+      '<div class="c" title="'+esc(item.t)+'">'+esc(item.t)+'</div>'+
+      '<div class="c num">'+num(item.h)+'</div><div class="c">'+esc(item.d||'—')+'</div>'+
       (open?'<div class="peek">'+
         '<div class="ans">'+(item.a===null?'答覆載入中…':item.a?esc(item.a):'（此題沒有答覆內容）')+'</div>'+
         (aiFor(item).length?'<div class="aiq"><b>AI 題（出題時會用這些問法）</b>'+aiFor(item).map(function(q){
@@ -804,6 +812,7 @@ function renderTopics(){
   }
   var mk=el('btn-make');mk.disabled=!S.peek;
   mk.title=S.peek?'以「'+S.peek.q+'」產生對話腳本':'先在下方點一題看內容，再按這裡產生對話腳本';
+  if(html)html='<div class="thead"><div>問題</div><div>發布單位</div><div>分類</div><div style="text-align:right">點閱</div><div>發布</div></div>'+html;
   el('topic-list').innerHTML=html||'<div class="empty">'+(ts.length?'全題庫找不到「'+esc(ts.join(' '))+'」，換個關鍵字試試':'請先在左邊選局處，或用上方搜尋找題目')+'</div>';
   el('topic-count').textContent=locked?'🔒 已鎖定這題，點標題或「收合」回到清單':ts.length?
     '全題庫符合 '+num(total)+' 題'+(total>=LIM?'（只列前 '+LIM+' 題，請再加關鍵字）':''):
