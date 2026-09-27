@@ -347,7 +347,7 @@ section[data-page="cs"]>.card.fill{padding:8px 10px}
     <div class="card" style="flex:none">
       <div class="row csbar">
         <div><label for="cs-n">出幾題</label><input id="cs-n" type="number" min="1" max="3000" value="20" style="width:58px"></div>
-        <div><label for="cs-org">局處</label><select id="cs-org" style="width:134px"></select></div>
+        <div><label for="cs-org">局處</label><input id="cs-org" list="cs-org-list" placeholder="全部局處" title="可輸入局處關鍵字，清空＝全部局處" autocomplete="off" style="width:134px"><datalist id="cs-org-list"></datalist></div>
         <div><label>難度 <span class="qm" tabindex="0" data-tip="L0 關鍵詞：只打這則 FAQ 的重點關鍵詞（專有名詞、業務名稱、事件，可空白分隔多個），測最基本的檢索&#10;L1 直述：接近 FAQ 標題的問法&#10;L2 口語改寫：生活化講法&#10;L3 情境＋條件判斷：給年齡、身分、日期等條件&#10;L4 一次問多件事，或夾帶錯誤前提&#10;&#10;都不勾＝不限">?</span></label>
           <div class="cks" id="cs-lv"><label class="ck"><input type="checkbox" value="L0"> L0</label><label class="ck"><input type="checkbox" value="L1" checked> L1</label><label class="ck"><input type="checkbox" value="L2"> L2</label><label class="ck"><input type="checkbox" value="L3"> L3</label><label class="ck"><input type="checkbox" value="L4"> L4</label></div></div>
         <div><label>題型 <span class="qm" tabindex="0" data-tip="關鍵詞：L0 題，只打重點關鍵詞，應找到這則 FAQ&#10;口語情境：帶生活情境的講法&#10;多意圖：一句話問兩件事，兩則 FAQ 都要答到&#10;錯誤前提：民眾說錯，客服應先更正&#10;用詞落差：講法跟 FAQ 標題差很遠&#10;條件判斷：要套用 FAQ 裡的資格條件&#10;時效：有年度、日期的內容&#10;無答案：非市府權責，應轉介、不可編造&#10;&#10;都不勾＝不限">?</span></label>
@@ -1053,10 +1053,19 @@ function csLoadBank(cb){
   fetch('cstest.json',{cache:'no-cache'}).then(function(r){if(!r.ok)throw 0;return r.json()})
     .then(function(b){CS.bank=b;cb()},function(){CS.bank=[];cb()});
 }
+/* 局處輸入框：完全相符用該局處；只打部分字且只對到一個局處也算；空白或對不到＝全部局處 */
+function csOrgName(){
+  var v=el('cs-org').value.trim(),hit=[],i;
+  if(!v||v==='全部局處')return '';
+  for(i=0;i<ORGS.length;i++){if(ORGS[i].org===v)return v;if(ORGS[i].org.indexOf(v)>=0)hit.push(ORGS[i].org)}
+  if(hit.length===1){el('cs-org').value=hit[0];return hit[0]}
+  flash('cs-said',hit.length?'「'+v+'」對到 '+hit.length+' 個局處，請從清單選一個':'找不到局處「'+v+'」，請重新輸入或清空');
+  return null;
+}
 function csOpts(){
   var lv=[],ty=[],i,b=document.querySelectorAll('#cs-lv input:checked,#cs-ty input:checked');
   for(i=0;i<b.length;i++)(b[i].closest('#cs-lv')?lv:ty).push(b[i].value);
-  return {n:Math.max(1,Math.min(3000,parseInt(el('cs-n').value,10)||20)),lv:lv,ty:ty,org:el('cs-org').value,
+  return {n:Math.max(1,Math.min(3000,parseInt(el('cs-n').value,10)||20)),lv:lv,ty:ty,org:csOrgName(),
     bench:el('cs-bench').checked,rule:el('cs-rule').checked};
 }
 function csMatch(q,o){
@@ -1114,6 +1123,7 @@ function csRuleOne(o,lvPick,tyPick){
 function csGenerate(){
   csLoadBank(function(){
     var o=csOpts(),cand=[],i;
+    if(o.org===null)return;
     for(i=0;i<CS.bank.length;i++){var q=CS.bank[i];
       if(q.src==='標竿'&&!o.bench)continue;
       if(csMatch(q,o))cand.push(q);}
@@ -1227,10 +1237,9 @@ function csCopy(){
   copy(CS.set.map(function(q){return q.no+'. '+q.q}).join('\n'),'已複製 '+CS.set.length+' 題題目（不含答案）');
 }
 function csInit(){
-  var h='<option value="">全部局處</option>',i;
-  for(i=0;i<ORGS.length;i++){var on=ORGS[i].org;
-    h+='<option value="'+esc(on)+'" title="'+esc(on)+'">'+esc(on.length>6?on.slice(0,6)+'…':on)+'</option>';}
-  el('cs-org').innerHTML=h;
+  var h='',i;
+  for(i=0;i<ORGS.length;i++)h+='<option value="'+esc(ORGS[i].org)+'"></option>';
+  el('cs-org-list').innerHTML=h;
   el('cs-ty').innerHTML=CS_TYPES.map(function(t){return '<label class="ck"><input type="checkbox" value="'+t+'"> '+t+'</label>'}).join('');
   el('cs-go').addEventListener('click',csGenerate);
   el('cs-xls').addEventListener('click',csExport);
