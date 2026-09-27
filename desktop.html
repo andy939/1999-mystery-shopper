@@ -199,6 +199,13 @@ td.nw{white-space:nowrap}
 .cks{display:flex;flex-wrap:wrap;gap:4px 12px;padding-top:6px}
 label.ck{display:inline-flex;align-items:center;gap:4px;margin:0;font-size:13px;color:var(--ink);cursor:pointer}
 label.ck input{padding:0;width:15px;height:15px;accent-color:var(--accent)}
+.csbar{align-items:flex-start;flex-wrap:nowrap}
+.csbar>div>label:not(.ck){height:20px;display:flex;align-items:center;gap:4px;margin-bottom:4px}
+#cs-n{-moz-appearance:textfield}#cs-n::-webkit-inner-spin-button,#cs-n::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.csacts{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;align-self:flex-end;margin-left:auto}
+.csacts .btns{display:flex;gap:10px}
+.csacts .msg{display:flex;gap:10px;min-height:18px;font-size:12.5px}
+.csacts .cnt{color:var(--dim);white-space:nowrap}
 table.cs td{font-size:13px}
 .csrow{cursor:pointer}
 .csrow:hover td{background:#fafbfc}
@@ -315,25 +322,23 @@ tr.csdet td{background:#fafbfc}
     <div class="scroll" id="p-src"></div><div class="pager"></div></div></section>
   <section data-page="cs" hidden>
     <div class="card" style="flex:none">
-      <div class="row">
-        <div><label for="cs-n">出幾題</label><input id="cs-n" type="number" min="1" max="300" value="20" style="width:80px"></div>
+      <div class="row csbar">
+        <div><label for="cs-n">出幾題</label><input id="cs-n" type="number" min="1" max="300" value="20" style="width:58px"></div>
         <div><label for="cs-org">局處</label><select id="cs-org" style="width:170px"></select></div>
         <div><label>難度 <span class="qm" tabindex="0" data-tip="L0 關鍵詞：只打這則 FAQ 的重點關鍵詞（專有名詞、業務名稱、事件，可空白分隔多個），測最基本的檢索&#10;L1 直述：接近 FAQ 標題的問法&#10;L2 口語改寫：生活化講法&#10;L3 情境＋條件判斷：給年齡、身分、日期等條件&#10;L4 一次問多件事，或夾帶錯誤前提&#10;&#10;都不勾＝不限">?</span></label>
           <div class="cks" id="cs-lv"><label class="ck"><input type="checkbox" value="L0"> L0</label><label class="ck"><input type="checkbox" value="L1"> L1</label><label class="ck"><input type="checkbox" value="L2"> L2</label><label class="ck"><input type="checkbox" value="L3"> L3</label><label class="ck"><input type="checkbox" value="L4"> L4</label></div></div>
-        <div style="flex:1;min-width:260px"><label>題型 <span class="qm" tabindex="0" data-tip="關鍵詞：L0 題，只打重點關鍵詞，應找到這則 FAQ&#10;口語情境：帶生活情境的講法&#10;多意圖：一句話問兩件事，兩則 FAQ 都要答到&#10;錯誤前提：民眾說錯，客服應先更正&#10;用詞落差：講法跟 FAQ 標題差很遠&#10;條件判斷：要套用 FAQ 裡的資格條件&#10;時效：有年度、日期的內容&#10;無答案：非市府權責，應轉介、不可編造&#10;&#10;都不勾＝不限">?</span></label>
+        <div style="flex:1;min-width:0"><label>題型 <span class="qm" tabindex="0" data-tip="關鍵詞：L0 題，只打重點關鍵詞，應找到這則 FAQ&#10;口語情境：帶生活情境的講法&#10;多意圖：一句話問兩件事，兩則 FAQ 都要答到&#10;錯誤前提：民眾說錯，客服應先更正&#10;用詞落差：講法跟 FAQ 標題差很遠&#10;條件判斷：要套用 FAQ 裡的資格條件&#10;時效：有年度、日期的內容&#10;無答案：非市府權責，應轉介、不可編造&#10;&#10;都不勾＝不限">?</span></label>
           <div class="cks" id="cs-ty"></div></div>
-      </div>
-      <div class="row" style="margin-top:10px;align-items:center">
-        <label class="ck"><input type="checkbox" id="cs-bench" checked> 含人工標竿 20 題</label>
-        <label class="ck"><input type="checkbox" id="cs-rule" checked> 題庫不夠時用規則補題</label>
-        <span style="flex:1"></span>
-        <span class="said" id="cs-said"></span>
-        <button class="ghost" id="cs-copy" title="只複製題目，方便貼給智能客服">複製題目</button>
-        <button class="ghost" id="cs-xls">匯出 Excel</button>
-        <button id="cs-go">🎲 產生測試題</button>
+        <div class="csacts">
+          <div class="msg"><span class="said" id="cs-said"></span><span class="cnt" id="cs-count"></span></div>
+          <div class="btns"><button class="ghost" id="cs-copy" title="只複製題目，方便貼給智能客服">複製題目</button>
+          <button class="ghost" id="cs-xls" title="匯出的 Excel 前五欄與「FAQ系統調校之題目」相同">匯出 Excel</button>
+          <button id="cs-go">🎲 產生測試題</button></div>
+        </div>
+        <input type="checkbox" id="cs-bench" checked hidden><input type="checkbox" id="cs-rule" checked hidden>
       </div>
     </div>
-    <div class="card fill"><h2>測試題 <span>點一列看標準答案；匯出的 Excel 前五欄與「FAQ系統調校之題目」相同</span><span class="tail" id="cs-count"></span></h2>
+    <div class="card fill">
       <div class="scroll" id="cs-list"></div></div>
   </section>
 </main>
@@ -1088,7 +1093,7 @@ function csRender(){
   if(!CS.set.length){el('cs-list').innerHTML='<div class="empty">設定好條件後按「🎲 產生測試題」</div>';el('cs-count').textContent='';return}
   var cnt={};for(i=0;i<CS.set.length;i++)cnt[CS.set[i].lv]=(cnt[CS.set[i].lv]||0)+1;
   el('cs-count').textContent=CS.set.length+' 題 · '+['L0','L1','L2','L3','L4'].filter(function(k){return cnt[k]}).map(function(k){return k+' '+cnt[k]}).join('、');
-  h='<div class="wrap"><table class="cs"><thead><tr><th>#</th><th>難度</th><th>題型</th><th>題目</th><th>期望</th><th>應答要點</th><th>對應 FAQ</th></tr></thead><tbody>';
+  h='<div class="wrap"><table class="cs"><thead><tr><th>#</th><th>難度</th><th>題型</th><th>題目</th><th>應答要點</th><th>對應 FAQ</th></tr></thead><tbody>';
   for(i=0;i<CS.set.length;i++){
     var q=CS.set[i];
     h+='<tr class="csrow'+(CS.open[i]?' on':'')+'" data-cs="'+i+'"><td class="num">'+q.no+'</td>'+
@@ -1096,11 +1101,10 @@ function csRender(){
       '<td>'+q.type.map(function(t){return '<span class="badge gray">'+esc(t)+'</span>'}).join(' ')+
       (q.src!=='AI'?' <span class="badge hot">'+esc(q.src)+'</span>':'')+'</td>'+
       '<td class="csq">'+esc(q.q)+'</td>'+
-      '<td class="nw" title="'+esc(CS_EXPECT[q.expect]||'')+'">'+esc(q.expect)+'</td>'+
       '<td class="csp">'+(q.points||[]).map(esc).join('<br>')+'</td>'+
       '<td class="csp">'+esc(csTitleText(q))+'</td></tr>';
     if(CS.open[i]){
-      h+='<tr class="csdet"><td></td><td colspan="6"><div class="csans"><b>標準答案</b>'+
+      h+='<tr class="csdet"><td></td><td colspan="5"><div class="csans"><b>標準答案</b>'+
         (q.avoid&&q.avoid.length?'<div class="csav">不應出現：'+q.avoid.map(esc).join('、')+'</div>':'')+
         (q.note?'<div class="hint">出題用意：'+esc(q.note)+'</div>':'')+
         '<div class="csbody">'+esc(csAnswerText(q))+'</div>'+
