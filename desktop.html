@@ -282,8 +282,8 @@ section[data-page="cs"]>.card.fill{padding:8px 10px}
 <div class="layout" id="layout">
 <aside class="side">
   <button class="fold" id="fold" title="收合／展開選單">‹</button>
-  <button data-page="cs"><i>🧪</i><span>智能客服測題</span></button>
-  <button data-page="pick"><i>🎯</i><span>選題抽題</span></button>
+  <button data-page="cs"><i>🧪</i><span>智能出題</span></button>
+  <button data-page="pick"><i>🎯</i><span>秘密客出題</span></button>
   <button data-page="dlg"><i>💬</i><span>對話腳本</span><b class="k" id="k-dlg"></b></button>
   <button data-page="probe"><i>❓</i><span>追問清單</span><b class="k" id="k-probe"></b></button>
   <button data-page="key"><i>✅</i><span>標準答案</span><b class="k" id="k-key"></b></button>
@@ -728,14 +728,14 @@ function flash(id,msg){var e=el(id);if(!e)return;e.textContent=msg;
 function toast(m){flash('said',m)}
 
 /* ================= 分頁 ================= */
-var PAGES=[['pick','選題抽題'],['dlg','對話腳本'],['probe','追問清單'],
+var PAGES=[['pick','秘密客出題'],['dlg','對話腳本'],['probe','追問清單'],
   ['key','標準答案'],['src','FAQ 來源']];
 var SUBPAGES=['dlg','probe','key','src'];
 /* 對話腳本等四頁要按過「出題」才有內容：之前反灰且禁止點 */
 function syncSide(){
   var bs=document.querySelectorAll('.side button[data-page]');
   for(var i=0;i<bs.length;i++)if(SUBPAGES.indexOf(bs[i].getAttribute('data-page'))>=0){
-    bs[i].disabled=!S.item;bs[i].title=S.item?'':'先到「選題抽題」按「📝 出題」或抽一題';}
+    bs[i].disabled=!S.item;bs[i].title=S.item?'':'先到「秘密客出題」按「📝 出題」或抽一題';}
 }
 function goPage(key){
   if(SUBPAGES.indexOf(key)>=0&&!S.item)key='pick';
