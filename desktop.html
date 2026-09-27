@@ -738,6 +738,8 @@ function goPage(key){
   el('sidenote').hidden=key==='pick'||key==='cs';   /* 選題頁只管選，抽到題目後才在腳本頁顯示題目 */
   var sc=document.querySelector('section[data-page="'+key+'"] .scroll');if(sc)sc.scrollTop=0;
   if(key==='pick')keepCurrentInView();
+  /* 第一次進智能客服測題：照預設條件（20 題、不限）自動出一組，不用先按按鈕 */
+  if(key==='cs'&&!CS.set.length&&!CS.auto){CS.auto=true;csGenerate();}
   saveUI();
 }
 function drawPagers(){
@@ -1030,7 +1032,7 @@ function csSidMap(){
 }
 function csLoadBank(cb){
   if(CS.bank)return cb();
-  fetch('cstest.json').then(function(r){if(!r.ok)throw 0;return r.json()})
+  fetch('cstest.json',{cache:'no-cache'}).then(function(r){if(!r.ok)throw 0;return r.json()})
     .then(function(b){CS.bank=b;cb()},function(){CS.bank=[];cb()});
 }
 function csOpts(){
@@ -1097,9 +1099,7 @@ function csGenerate(){
     for(i=0;i<CS.bank.length;i++){var q=CS.bank[i];
       if(q.src==='標竿'&&!o.bench)continue;
       if(csMatch(q,o))cand.push(q);}
-    csShuffle(cand);
-    /* 標竿題優先放前面 */
-    cand.sort(function(a,b){return (b.src==='標竿')-(a.src==='標竿')});
+    csShuffle(cand);   /* 人工標竿與 AI 題一起隨機抽，不再固定排前面（否則 20 題永遠是同一組標竿） */
     var set=cand.slice(0,o.n),need=o.n-set.length;
     if(need>0&&o.rule){
       /* 關鍵詞題（L0）要挑重點詞，交給 AI 題庫，不用規則臨時產生 */
