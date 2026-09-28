@@ -1259,9 +1259,14 @@ function fillSelect(id,obj,val){
   for(k in obj)h+='<option value="'+k+'">'+esc(obj[k].n)+'</option>';
   s.innerHTML=h;s.value=val;
 }
-function init(){
-  el('ov').innerHTML='題庫 <b>'+num(DATA.totalFaq)+'</b> 題<i>|</i>局處 <b>'+ORGS.length+
+/* 上方資訊列：FAQ 則數、智能題庫題數（題庫載入後補上） */
+function drawOv(){
+  var b=CS.bank,nb=b&&b.length?'<i>|</i>智能題庫 <b>'+num(b.length)+'</b> 題':'';
+  el('ov').innerHTML='FAQ <b>'+num(DATA.totalFaq)+'</b> 則'+nb+'<i>|</i>局處 <b>'+ORGS.length+
     '</b> 個<i>|</i>資料更新 <b>'+esc(DATA.generated)+'</b><i>|</i>來源 '+esc(DATA.source);
+}
+function init(){
+  drawOv();
   fillSelect('f-persona',PERSONAS,S.persona);
   fillSelect('f-level',LEVELS,S.level);
   drawPagers();
@@ -1327,7 +1332,7 @@ function boot(){
   fetch('data/index.json').then(function(r){
     if(!r.ok)throw new Error(r.status);return r.json();
   }).then(function(meta){buildIndex(meta);init();
-    csLoadBank(function(){AIQ=null;renderTopics();if(S.item)rebuild();});},function(){
+    csLoadBank(function(){AIQ=null;drawOv();renderTopics();if(S.item)rebuild();});},function(){
     el('cur-q').textContent='題庫載入失敗，請確認網路後重新整理';
     el('ov').textContent='載入失敗';
   });
