@@ -1246,6 +1246,7 @@ function csInit(){
   el('cs-copy').addEventListener('click',csCopy);
   el('cs-list').addEventListener('click',function(e){
     if(e.target.closest('a'))return;
+    if(String(getSelection()).trim())return;   /* 拖曳選字（複製題目）放開那下也算 click，選到字就不切換 */
     var r=e.target.closest('[data-cs]');if(!r)return;
     var k=+r.getAttribute('data-cs'),box=el('cs-list');
     if(CS.focus===k){CS.focus=null;csRender();box.scrollTop=CS.keep||0;}
@@ -1296,6 +1297,7 @@ function init(){
   el('topic-list').addEventListener('click',function(e){
     var b=e.target.closest('[data-q]');if(!b)return;
     if(e.target.closest('a'))return;
+    if(String(getSelection()).trim())return;   /* 拖曳選字（複製標題）放開那下也算 click，選到字就不鎖定／解鎖 */
     if(e.target.closest('.peek')&&!e.target.closest('button'))return;   /* 展開區可選取文字，不收合 */
     if(e.target.closest('[data-close]')){S.peek=null;renderTopics();return}
     peekItem(b.getAttribute('data-org'),b.getAttribute('data-q'));});
