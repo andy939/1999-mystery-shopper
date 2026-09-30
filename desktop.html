@@ -391,7 +391,7 @@ function ensureOrg(org,cb){
   if(org.loaded)return cb();
   if(org._loading){org._q=org._q||[];org._q.push(cb);return}
   org._loading=true;org._q=[cb];
-  fetch('data/'+org.file+'.json').then(function(r){
+  fetch('data/'+org.file+'.json',{cache:'no-cache'}).then(function(r){
     if(!r.ok)throw new Error(r.status);return r.json();
   }).then(function(arr){
     for(var i=0;i<org.items.length;i++)org.items[i].a=arr[i]||'';
@@ -1331,7 +1331,7 @@ function init(){
     if(n>=1&&n<=PAGES.length){e.preventDefault();goPage(PAGES[n-1][0]);}});
 }
 function boot(){
-  fetch('data/index.json').then(function(r){
+  fetch('data/index.json',{cache:'no-cache'}).then(function(r){
     if(!r.ok)throw new Error(r.status);return r.json();
   }).then(function(meta){buildIndex(meta);init();
     csLoadBank(function(){AIQ=null;drawOv();renderTopics();if(S.item)rebuild();});},function(){
