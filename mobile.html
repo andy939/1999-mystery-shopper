@@ -504,6 +504,12 @@ function cite(f){return f.u+'〈'+(f.q.length>18?f.q.slice(0,18)+'…':f.q)+'〉
   (f.sid?' #'+f.sid.slice(0,8):'')}
 function probesFor(item){
   var txt=item.q+' '+item.a,sn=sentences(item.a),hit=[],out=[],i,j;
+  /* AI 題的條件判斷／錯誤前提／多意圖題排最前面，正解用它的應答要點 */
+  var deep=shuffled(aiFor(item).filter(function(q){return q.lv==='L3'||q.lv==='L4'}));
+  for(i=0;i<deep.length&&i<2;i++){var d=deep[i];
+    out.push({q:d.q,why:(d.type||[]).join('、')+'：'+(d.note||''),kind:'AI 題',src:item,
+      ans:(d.expect==='糾正'?'先更正民眾說法。':'')+(d.points||[]).join('；')+
+        (d.avoid&&d.avoid.length?'（不應說：'+d.avoid.join('、')+'）':'')});}
   for(i=0;i<PROBES.length;i++){
     if(!PROBES[i][0].test(txt))continue;
     var ans='';
@@ -513,7 +519,7 @@ function probesFor(item){
   }
   /* 命中的題目洗牌後取 3–4 題，所以同一主題每次的追問組合不同 */
   hit=shuffled(hit);
-  var take=hit.length>3?(3+Math.floor(RND()*2)):hit.length;
+  var take=Math.max(0,(hit.length>3?(3+Math.floor(RND()*2)):hit.length)-out.length);
   for(i=0;i<take;i++)out.push(hit[i]);
   if(out.length<3)out.push({q:'這件事如果我不方便自己來辦，還有沒有其他管道？',
     why:'替代管道是否主動提供',ans:'',src:item,kind:'主題'});
@@ -536,17 +542,46 @@ function crossOrgFor(item){
   }
   return pool.length?pool[0]:'區公所';
 }
+/* AI 題（cstest.json，跟桌機版共用）：sid → 對話型題目（不含 L0 關鍵詞、不含 🔴 過時題） */
+var AI={bank:null,stale:{}},AIQ=null;
+function isRed(q){var x=AI.stale[q.id];return !!(x&&x.level==='red')}
+function aiIndex(){
+  if(AIQ)return AIQ;AIQ={};
+  var b=AI.bank||[],i,j;
+  for(i=0;i<b.length;i++){var q=b[i];if(q.lv==='L0'||!q.faqs||isRed(q))continue;
+    for(j=0;j<q.faqs.length;j++)(AIQ[q.faqs[j]]=AIQ[q.faqs[j]]||[]).push(q);}
+  return AIQ;
+}
+function aiFor(item){return item&&item.sid&&AI.bank?(aiIndex()[item.sid]||[]):[]}
+function aiPick(list,lvs){
+  for(var k=0;k<lvs.length;k++){var c=list.filter(function(q){return q.lv===lvs[k]});if(c.length)return pick(c)}
+  return null;
+}
+function loadAI(cb){
+  function get(u){return fetch(u,{cache:'no-cache'}).then(function(r){if(!r.ok)throw 0;return r.json()})}
+  Promise.all([get('cstest.json').catch(function(){return []}),get('stale.json').catch(function(){return null})])
+    .then(function(r){
+      AI.bank=r[0];AI.stale={};
+      if(r[1]&&r[1].items)r[1].items.forEach(function(it){AI.stale[it.id]=it});
+      AIQ=null;cb();
+    });
+}
+/* 開場（依難度）：有 AI 題就用 AI 題的問法，沒有才用規則模板 */
 function openingLines(item,level){
-  var p=PERSONAS[S.persona],lines=[{who:'客',t:p.open}];
-  if(level==='L1'){lines.push({who:'客',t:'我想請問：'+item.q});}
-  else if(level==='L2'){
+  var p=PERSONAS[S.persona],lines=[{who:'客',t:p.open}],ai=aiFor(item),a;
+  if(level==='L1'){a=aiPick(ai,['L1','L2']);lines.push({who:'客',t:a?esc(a.q):'我想請問：'+item.q});}
+  else if(level==='L2'&&(a=aiPick(ai,['L2','L1']))){
+    lines.push({who:'客',t:'就是…'+esc(a.q)+'<em>'+pick(VAR.pause)+'</em>'});
+  }else if(level==='L2'){
     lines.push({who:'客',t:'就是…那個…'+fill(pick(VAR.vague),{t:item.t})+'。大概就是'+
       shortQ(item.q)+'這樣，<em>'+pick(VAR.pause)+'</em>你聽得懂我的意思嗎？'});
   }else if(level==='L3'){
     lines.push({who:'客',t:'我上個禮拜就打過一次 1999 了，到現在還是沒人跟我講清楚。<em>（語氣不耐但不辱罵）</em>'});
-    lines.push({who:'客',t:'我要問的是：'+item.q+' 這到底是誰在管？'});
+    a=aiPick(ai,['L2','L1']);
+    lines.push({who:'客',t:a?esc(a.q)+' 這次可以直接告訴我嗎？':'我要問的是：'+item.q+' 這到底是誰在管？'});
   }else{
-    lines.push({who:'客',t:'我有兩件事要問。第一，'+item.q});
+    a=aiPick(ai,['L1','L2']);
+    lines.push({who:'客',t:'我有兩件事要問。第一，'+(a?esc(a.q):item.q)});
     lines.push({who:'客',t:'第二，我聽說「'+crossOrgFor(item)+'」那邊也要辦，是真的嗎？'+
       '如果不是你們管的，麻煩幫我轉正確的單位。'});
     lines.push({who:'客',t:'還有，'+(CROSS_CENTRAL[item.t]||'這件事是不是要找中央？')+
@@ -700,7 +735,7 @@ function renderTopicList(kw,scope){
     var org=items[i][0],item=items[i][1];
     html+='<button class="pick" data-org="'+esc(org.org)+'" data-q="'+esc(item.q)+'" aria-current="'+
       (S.item&&S.item.q===item.q)+'"><span class="nm">'+esc(item.q)+
-      '<span class="sub">'+esc(item.t)+' · 點閱 '+num(item.h)+
+      '<span class="sub">'+esc(item.t)+' · 點閱 '+num(item.h)+(aiFor(item).length?' · AI 題 '+aiFor(item).length:'')+
       (scope==='all'?' · '+esc(org.org):'')+'</span></span></button>';
   }
   el('topic-list').innerHTML=html||('<div class="note" style="padding:18px 14px">'+'這個局處裡沒有「'+esc(kw)+'」相關題目。'+'<br><br><button class="btn-goall" data-goall="1">改在全題庫找「'+esc(kw)+'」</button></div>');
@@ -943,6 +978,11 @@ function boot(){
   }).then(function(meta){
     buildIndex(meta);
     init();
+    /* AI 題庫晚一點到：到了就重畫題目清單，已選題就重產腳本（同一個腳本編號） */
+    loadAI(function(){
+      if(!el('topic-list').hidden)renderPick();
+      if(S.item&&S.pr)rebuild();
+    });
   },function(){
     var t=document.querySelector('.bar h1')||document.querySelector('.sh-top h2');
     if(t)t.textContent='題庫載入失敗，請確認網路後重新整理';
