@@ -43,9 +43,9 @@
 
 有 AI 題的 FAQ，秘密客出題的開場與追問也會改用 AI 題的問法；沒有的才用規則模板。
 
-## 補題
+## 補題與過時檢查
 
-出題流程與工具在專案的 `出題工具/` 資料夾（不發布到網站）：`prep.py` 挑還沒有 AI 題的 FAQ → 依 `出題說明.md` 分批出題 → `merge.py --write` 驗證後合併進 `cstest.json`。
+出題與過時檢查工具在 `tools/`，說明見 [tools/README.md](tools/README.md)。爬蟲每天同步 FAQ 後，GitHub Actions 會自動檢查題目有沒有因 FAQ 改版而過時，結果寫進 `stale.json`，網站上方會顯示過時題數，🔴 題目暫停出題。
 
 ## 說明
 

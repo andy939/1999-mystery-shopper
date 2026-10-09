@@ -29,6 +29,7 @@ h1{font-size:16px;color:#fff}
 .topbar .meta i{font-style:normal;color:rgba(255,255,255,.35);margin:0 6px}
 .topbar .links{display:flex;gap:16px;white-space:nowrap}
 .topbar a{color:#cfe3ff;text-decoration:none;font-size:13px}
+.topbar a.stale{color:#ffe08a;font-weight:600}
 .topbar a:hover{color:#fff;text-decoration:underline}
 
 /* 左側分區＋右側內容，整個畫面固定高度，只有卡片內部捲動 */
@@ -649,7 +650,7 @@ var AIQ=null;
 function aiIndex(){
   if(AIQ)return AIQ;AIQ={};
   var b=CS.bank||[],i,j;
-  for(i=0;i<b.length;i++){var q=b[i];if(q.lv==='L0'||!q.faqs)continue;
+  for(i=0;i<b.length;i++){var q=b[i];if(q.lv==='L0'||!q.faqs||isRed(q))continue;   /* 🔴 過時題不拿來寫腳本 */
     for(j=0;j<q.faqs.length;j++)(AIQ[q.faqs[j]]=AIQ[q.faqs[j]]||[]).push(q);}
   return AIQ;
 }
@@ -1048,11 +1049,18 @@ function csSidMap(){
     if(ORGS[i].items[j].sid)m[ORGS[i].items[j].sid]={org:ORGS[i],item:ORGS[i].items[j]};
   return CS.sidMap=m;
 }
+/* 題庫＋過時檢查結果（stale.json 由 GitHub Actions 在爬蟲同步後產生）一起載入 */
 function csLoadBank(cb){
   if(CS.bank)return cb();
-  fetch('cstest.json',{cache:'no-cache'}).then(function(r){if(!r.ok)throw 0;return r.json()})
-    .then(function(b){CS.bank=b;cb()},function(){CS.bank=[];cb()});
+  function get(u){return fetch(u,{cache:'no-cache'}).then(function(r){if(!r.ok)throw 0;return r.json()})}
+  Promise.all([get('cstest.json').catch(function(){return []}),get('stale.json').catch(function(){return null})])
+    .then(function(r){
+      CS.bank=r[0];CS.staleInfo=r[1];CS.stale={};
+      if(r[1]&&r[1].items)r[1].items.forEach(function(it){CS.stale[it.id]=it});
+      cb();
+    });
 }
+function isRed(q){var x=CS.stale&&CS.stale[q.id];return !!(x&&x.level==='red')}
 /* 局處輸入框：完全相符用該局處；只打部分字且只對到一個局處也算；空白或對不到＝全部局處 */
 function csOrgName(){
   var v=el('cs-org').value.trim(),hit=[],i;
@@ -1126,6 +1134,7 @@ function csGenerate(){
     if(o.org===null)return;
     for(i=0;i<CS.bank.length;i++){var q=CS.bank[i];
       if(q.src==='標竿'&&!o.bench)continue;
+      if(isRed(q))continue;   /* 🔴 FAQ 已改版、要點過時：修好前先不出 */
       if(csMatch(q,o))cand.push(q);}
     csShuffle(cand);   /* 人工標竿與 AI 題一起隨機抽，不再固定排前面（否則 20 題永遠是同一組標竿） */
     var set=cand.slice(0,o.n),need=o.n-set.length;
@@ -1186,6 +1195,7 @@ function csRender(){
     h+='<tr class="csrow'+(f===i?' on':'')+'" data-cs="'+i+'"><td class="num">'+q.no+'</td>'+
       '<td class="nw"><span class="badge">'+esc(q.lv)+'</span></td>'+
       '<td>'+q.type.map(function(t){return '<span class="badge gray">'+esc(t)+'</span>'}).join(' ')+
+      (CS.stale&&CS.stale[q.id]?' <span class="badge hot" title="'+esc(CS.stale[q.id].why.join('\n'))+'">⚠ 待確認</span>':'')+
       '</td>'+
       '<td class="csq">'+esc(q.q)+'</td>'+
       '<td class="csf">'+esc(csTitleText(q))+'</td></tr>';
@@ -1262,7 +1272,9 @@ function fillSelect(id,obj,val){
 }
 /* 上方資訊列：FAQ 則數、智能題庫題數（題庫載入後補上） */
 function drawOv(){
-  var b=CS.bank,nb=b&&b.length?'<i>|</i>智能題庫 <b>'+num(b.length)+'</b> 題':'';
+  var b=CS.bank,si=CS.staleInfo,nb=b&&b.length?'<i>|</i>智能題庫 <b>'+num(b.length)+'</b> 題':'';
+  if(si&&(si.red||si.yellow))nb+='<i>|</i><a class="stale" href="https://github.com/andy939/1999-mystery-shopper/issues" target="_blank" rel="noopener" title="FAQ 改版後，這些題目的應答要點可能過時（檢查時間 '+esc(si.checked)+'）。🔴 已暫停出題。">⚠ 過時 '+
+    (si.red?'🔴'+si.red+' ':'')+(si.yellow?'🟡'+si.yellow:'')+' 題</a>';
   el('ov').innerHTML='FAQ <b>'+num(DATA.totalFaq)+'</b> 則'+nb+'<i>|</i>局處 <b>'+ORGS.length+
     '</b> 個<i>|</i>資料更新 <b>'+esc(DATA.generated)+'</b><i>|</i>來源 '+esc(DATA.source);
 }

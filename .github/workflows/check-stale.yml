@@ -1,0 +1,63 @@
+# 智能題庫過時檢查：爬蟲每天推 data/ 之後自動跑，比對 FAQ 改版。
+# 結果寫進 stale.json（網站讀它標示過時題目），有要處理的題目就開／更新 GitHub Issue 通知。
+name: 智能題庫過時檢查
+
+on:
+  push:
+    branches: [main]
+    paths: ['data/**', 'cstest.json', 'tools/faq_snapshot.json', 'tools/check_stale.py']
+  schedule:
+    - cron: '0 0 * * 1'   # 每週一 08:00（台北）保險再跑一次
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: check-stale
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 比對 FAQ 與題庫
+        id: chk
+        run: python tools/check_stale.py
+
+      - name: 結果有變就更新 stale.json
+        run: |
+          if [ -n "$(git status --porcelain stale.json)" ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add stale.json
+            git commit -m "過時檢查：🔴 ${{ steps.chk.outputs.red }} 題、🟡 ${{ steps.chk.outputs.yellow }} 題（FAQ 改版 ${{ steps.chk.outputs.changed }} 則）"
+            git pull --rebase
+            git push
+          fi
+
+      - name: 開／更新／關閉 Issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RED: ${{ steps.chk.outputs.red }}
+          YELLOW: ${{ steps.chk.outputs.yellow }}
+        run: |
+          TITLE='智能題庫有過時題目'
+          NUM=$(gh issue list --state open --search "in:title $TITLE" --json number --jq '.[0].number')
+          if [ "$RED" != "0" ] || [ "$YELLOW" != "0" ]; then
+            if [ -n "$NUM" ]; then
+              gh issue edit "$NUM" --body-file tools/過時檢查報告.md
+              gh issue comment "$NUM" --body "重新檢查：🔴 $RED 題、🟡 $YELLOW 題"
+            else
+              gh issue create --title "$TITLE" --body-file tools/過時檢查報告.md
+            fi
+          elif [ -n "$NUM" ]; then
+            gh issue close "$NUM" --comment '重新檢查已無過時題目，自動關閉。'
+          fi
