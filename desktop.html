@@ -266,6 +266,36 @@ section[data-page="cs"]>.card.fill{padding:8px 10px}
   .card{break-inside:auto;border-color:#999}
   .scroll{overflow:visible}
 }
+/* ===== 問答查詢（搬自 faq-crawler 網站，只套用在這一頁，名稱都加 qa- 前綴） ===== */
+section[data-page="qa"] .card.fill{gap:0}
+.qa-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.qa-bar label{margin:0;display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink)}
+.qa-grid{flex:1;min-height:0;display:grid;grid-template-columns:172px minmax(0,1fr);gap:14px}
+.qa-orgs{border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;min-height:0}
+.qa-orgs h4{margin:2px 6px 8px;font-size:12px;color:var(--dim);font-weight:600}
+.qa-orgs h4 span{font-weight:400}
+#qa-orglist{flex:1;min-height:0;overflow:auto}
+.qa-orgs button{display:flex;width:100%;justify-content:space-between;gap:8px;align-items:center;background:none;
+  border:0;border-radius:6px;padding:6px 8px;font-size:13px;font-weight:400;color:var(--ink);text-align:left}
+.qa-orgs button:hover{background:var(--hover);filter:none}
+.qa-orgs button.on{background:var(--soft);color:var(--deep);font-weight:600}
+.qa-orgs button b{font-weight:400;color:var(--dim);font-variant-numeric:tabular-nums}
+.qa-orgs button.on b{color:var(--deep)}
+.qa-results{display:flex;flex-direction:column;min-height:0}
+#qa-listbox{flex:1;min-height:0;overflow:auto;padding-right:4px}
+.qa-item{border:1px solid var(--line);border-radius:8px;padding:10px 13px;margin-bottom:7px;cursor:pointer}
+.qa-item:hover{border-color:var(--accent)}
+.qa-item h3{margin:0;font-size:14.5px;font-weight:600;line-height:1.45}
+.qa-item.open{background:var(--soft);border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent);cursor:default}
+.qa-item.open h3{position:sticky;top:0;z-index:1;background:var(--soft);color:var(--deep);cursor:pointer;
+  margin:-10px -13px 0;padding:10px 13px 4px;border-radius:8px 8px 0 0}
+.qa-meta{font-size:12px;color:var(--dim);margin-top:4px;display:flex;flex-wrap:wrap;gap:10px}
+.qa-body{margin-top:10px;padding:10px 12px;white-space:pre-wrap;font-size:13.5px;line-height:1.75;
+  background:var(--card);border:1px solid var(--line);border-radius:6px;cursor:text}
+.qa-body .files a{display:block;margin-top:3px}
+.qa-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;white-space:normal}
+.qa-acts a{display:inline!important;margin:0!important}
+.badge.gone{background:#fdf0ee;color:var(--danger)}
 </style>
 </head>
 <body>
@@ -284,6 +314,7 @@ section[data-page="cs"]>.card.fill{padding:8px 10px}
 <aside class="side">
   <button class="fold" id="fold" title="收合／展開選單">‹</button>
   <button data-page="cs"><i>🧪</i><span>智能出題</span></button>
+  <button data-page="qa"><i>🔍</i><span>問答查詢</span></button>
   <button data-page="pick"><i>🎯</i><span>秘密客出題</span></button>
   <button data-page="dlg"><i>💬</i><span>對話腳本</span><b class="k" id="k-dlg"></b></button>
   <button data-page="probe"><i>❓</i><span>追問清單</span><b class="k" id="k-probe"></b></button>
@@ -364,6 +395,39 @@ section[data-page="cs"]>.card.fill{padding:8px 10px}
     </div>
     <div class="card fill">
       <div class="scroll" id="cs-list"></div></div>
+  </section>
+  <!-- 問答查詢：搬自 faq-crawler 網站，資料讀爬蟲的 faq.json（爬蟲每天更新） -->
+  <section data-page="qa" hidden>
+    <div class="card fill">
+      <div class="qa-bar">
+        <input id="qa-q" type="search" placeholder="關鍵字（空白分隔多個詞）" style="flex:1;min-width:220px">
+        <input type="hidden" id="qa-dept">
+        <select id="qa-year"><option value="">全部年份</option></select>
+        <select id="qa-sort">
+          <option value="date-">發布日期新→舊</option>
+          <option value="date+">發布日期舊→新</option>
+          <option value="exp+">下版日期近→遠</option>
+          <option value="title">標題</option>
+        </select>
+        <label><input type="checkbox" id="qa-onlyfile"> 只看有附件</label>
+        <label><input type="checkbox" id="qa-showgone"> 含已下架</label>
+        <button class="ghost" id="qa-csv">匯出 Excel</button>
+      </div>
+      <div class="qa-grid">
+        <aside class="qa-orgs">
+          <h4>局處分類　<span id="qa-orgn"></span></h4>
+          <input id="qa-orgq" type="search" placeholder="篩選局處…" style="width:100%;margin:0 0 6px">
+          <div id="qa-orglist"></div>
+        </aside>
+        <div class="qa-results">
+          <div class="hint" id="qa-count" style="margin:0 0 10px">點進來後載入問答資料…</div>
+          <div id="qa-listbox">
+            <div id="qa-list"></div>
+            <div style="text-align:center"><button class="ghost" id="qa-more" hidden>再顯示 200 筆</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 </main>
 </div>
@@ -744,8 +808,9 @@ function goPage(key){
   var bs=document.querySelectorAll('.side button[data-page]'),ss=document.querySelectorAll('section[data-page]'),i;
   for(i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-page')===key);
   for(i=0;i<ss.length;i++)ss[i].hidden=ss[i].getAttribute('data-page')!==key;
-  el('cur').hidden=key==='pick'||key==='cs';
-  el('sidenote').hidden=key==='pick'||key==='cs';   /* 選題頁只管選，抽到題目後才在腳本頁顯示題目 */
+  el('cur').hidden=key==='pick'||key==='cs'||key==='qa';
+  el('sidenote').hidden=key==='pick'||key==='cs'||key==='qa';
+  if(key==='qa'&&window.qaOpen)window.qaOpen();   /* 問答資料點進來才下載 */   /* 選題頁只管選，抽到題目後才在腳本頁顯示題目 */
   var sc=document.querySelector('section[data-page="'+key+'"] .scroll');if(sc)sc.scrollTop=0;
   if(key==='pick')keepCurrentInView();
   /* 第一次進智能客服測題：照預設條件（20 題、不限）自動出一組，不用先按按鈕 */
@@ -1352,6 +1417,199 @@ function boot(){
   });
 }
 boot();
+})();
+</script>
+<script>
+/* ===== 問答查詢：搬自 faq-crawler 網站的「問答查詢」 =====
+   資料直接讀爬蟲網站的 faq.json（同在 andy939.github.io，GitHub 也開放跨站讀取），
+   所以爬蟲每天更新，這裡就同步是最新的；含已下架、附件、更新日期。
+   檔案約 9.5MB（傳輸壓縮後約 2～3MB），點進這一頁才下載，不拖慢其他頁。 */
+(function(){
+"use strict";
+const SRC='https://andy939.github.io/faq-crawler/faq.json';
+const $=s=>document.querySelector(s);
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nf=n=>(n==null||n==='')?'':Number(n).toLocaleString('zh-TW');
+const norm=s=>(s||'').toLowerCase();
+let ALL=null, LOADING=false, LIST=[], shown=200, PEEK=null, KEEP=null;
+
+window.qaOpen=function(){
+  if(ALL||LOADING) return;
+  LOADING=true;
+  $('#qa-count').textContent='載入問答資料中…（第一次約需幾秒）';
+  fetch(SRC,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(d=>{ALL=d;LOADING=false;init();},
+          e=>{LOADING=false;$('#qa-count').innerHTML='<span style="color:var(--danger)">載入失敗：'+
+            esc(e.message)+'。請確認網路後，再點一次左邊的「問答查詢」</span>';});
+};
+
+function init(){
+  const years=[...new Set(ALL.map(r=>(r.published||'').slice(0,4)).filter(Boolean))].sort().reverse();
+  $('#qa-year').innerHTML='<option value="">全部年份</option>'+years.map(y=>`<option>${esc(y)}</option>`).join('');
+  render(true);
+}
+
+// ---- 篩選 ----
+function filtered(){
+  const ts=terms(), dept=$('#qa-dept').value, year=$('#qa-year').value,
+        onlyfile=$('#qa-onlyfile').checked, gone=$('#qa-showgone').checked;
+  const out=ALL.filter(r=>{
+    if(!gone && r.gone) return false;
+    if(dept && !norm(r.dept).includes(norm(dept))) return false;
+    if(year && !(r.published||'').startsWith(year)) return false;
+    if(onlyfile && !(r.files&&r.files.length)) return false;
+    return hit(r,ts);
+  });
+  const s=$('#qa-sort').value;
+  out.sort(s==='title' ? (a,b)=>a.title.localeCompare(b.title,'zh-Hant')
+    : s==='date+' ? (a,b)=>(a.published||'').localeCompare(b.published||'')
+    : s==='exp+'  ? (a,b)=>(a.expire||'9999').localeCompare(b.expire||'9999')
+    : (a,b)=>(b.published||'').localeCompare(a.published||''));
+  return out;
+}
+// 關鍵字用空白分隔，每個詞都要出現（不限順序、不限位置）
+function terms(){ return norm($('#qa-q').value).split(/\s+/).filter(Boolean); }
+const reEsc=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function hl(text,ts){
+  const out=esc(text);
+  if(!ts||!ts.length) return out;
+  const pat=ts.map(t=>reEsc(esc(t))).filter(Boolean);
+  return pat.length?out.replace(new RegExp('('+pat.join('|')+')','gi'),'<mark>$1</mark>'):out;
+}
+function hit(r,ts){
+  if(!ts.length) return true;
+  const hay=norm(r.title)+' '+norm(r.answer)+' '+norm(r.dept);
+  return ts.every(t=>hay.includes(t));
+}
+function snippet(r,ts){
+  if(!ts.length||!r.answer) return '';
+  const low=norm(r.answer); let i=-1,w=0;
+  for(const t of ts){ const k=low.indexOf(t); if(k>=0&&(i<0||k<i)){i=k;w=t.length;} }
+  if(i<0) return '';
+  return '…'+hl(r.answer.slice(Math.max(0,i-40),i+w+80).replace(/\s+/g,' '),ts)+'…';
+}
+
+// ---- 局處分類：科室層級收斂成局處，數字跟著其他條件走、不受局處自己影響 ----
+const ORG_PREFIX=/^(臺北市政府|臺北市立|臺北市)/;
+const ORG_CUT=/^(.*?(?:管理委員會|委員會|基金會|公會|協會|中心|局|處|所|館|署|院|大隊|分局))/;
+function orgOf(dept){ const t=(dept||'').replace(ORG_PREFIX,''); const m=ORG_CUT.exec(t); return m?m[1]:(t||'（未填）'); }
+function orgPanel(){
+  const keep=$('#qa-dept').value;
+  $('#qa-dept').value='';
+  const base=filtered();
+  $('#qa-dept').value=keep;
+  const m=new Map();
+  base.forEach(r=>{const d=orgOf(r.dept);m.set(d,(m.get(d)||0)+1);});
+  let list=[...m].sort((a,b)=>b[1]-a[1]);
+  const kw=norm($('#qa-orgq').value.trim()), all=list.length;
+  if(kw) list=list.filter(([d])=>norm(d).includes(kw));
+  $('#qa-orgn').textContent=kw?`（${list.length}／${all} 機關）`:`（${all} 機關）`;
+  const short=d=>d.length>6?d.slice(0,6)+'…':d;
+  $('#qa-orglist').innerHTML=`<button data-org="" class="${keep?'':'on'}"><span>全部機關</span><b>${nf(base.length)}</b></button>`+
+    list.map(([d,n])=>`<button data-org="${esc(d)}" class="${keep===d?'on':''}" title="${esc(d)}"><span>${esc(short(d))}</span><b>${nf(n)}</b></button>`).join('');
+}
+$('#qa-orglist').onclick=e=>{const b=e.target.closest('[data-org]');if(!b)return;$('#qa-dept').value=b.dataset.org;render(true);};
+$('#qa-orgq').oninput=()=>{if(ALL)orgPanel();};
+
+// ---- 清單：點一題鎖定，清單只留這一題；點標題、按「收合」或 Esc 回到原位置 ----
+function bodyHtml(r){
+  const files=(r.files||[]).map(f=>`<a href="${esc(f.url)}" target="_blank" rel="noopener">📎 ${esc(f.name)}
+     <span style="color:var(--dim)">${esc(f.kind)} ${esc(f.size)}</span></a>`).join('');
+  return `<div class="qa-body">${r.answer?esc(r.answer):'<i style="color:var(--dim)">（站上沒有內文）</i>'}${
+    files?`<div class="files"><b>相關檔案</b>${files}</div>`:''}
+    <div class="qa-acts"><a href="${esc(r.url)}" target="_blank" rel="noopener">在市府官網開啟 ↗</a>
+     <span style="color:var(--dim)">更新 ${esc(r.updated||'—')}　檢視 ${esc(r.reviewed||'—')}　維護 ${esc(r.maintainer||'—')}</span>
+     <span style="flex:1"></span>
+     <button class="ghost sm" data-copy="title">📋 複製標題</button>
+     <button class="ghost sm" data-copy="answer">📋 複製答案</button>
+     <button class="ghost sm" data-close="1">收合</button></div></div>`;
+}
+function render(reset){
+  if(!ALL) return;
+  if(reset){shown=200;PEEK=null;KEEP=null;$('#qa-listbox').scrollTop=0;}
+  LIST=filtered();
+  orgPanel();
+  const ts=terms();
+  const idx=PEEK!=null?[PEEK]:LIST.slice(0,shown).map((_,i)=>i);
+  $('#qa-count').textContent=PEEK!=null?'🔒 已鎖定這題，點標題、按「收合」或 Esc 回到清單'
+    :`符合 ${nf(LIST.length)} 筆`+(LIST.length>shown?`，顯示前 ${nf(shown)} 筆`:'');
+  $('#qa-list').innerHTML=idx.map(i=>{const r=LIST[i],open=i===PEEK;return `
+    <div class="qa-item${open?' open':''}" data-i="${i}">
+      <h3>${hl(r.title,ts)}</h3>
+      <div class="qa-meta">
+        <span>${esc(r.dept)}</span>
+        <span>發布 ${esc((r.published||'').slice(0,10)||'—')}</span>
+        ${r.updated?`<span title="${esc(r.updated)}">更新 ${esc(r.updated.slice(0,10))}</span>`:''}
+        ${r.files&&r.files.length?`<span class="badge">附件 ${r.files.length}</span>`:''}
+        ${r.kind==='external'?'<span class="badge">外部連結</span>':''}
+        ${r.gone?`<span class="badge gone">已下架 ${esc(r.gone)}</span>`:''}
+      </div>
+      ${open?bodyHtml(r):snippet(r,ts)?`<div class="qa-meta">${snippet(r,ts)}</div>`:''}
+    </div>`;}).join('')||'<div class="empty">沒有符合的問答，換個關鍵字試試</div>';
+  $('#qa-more').hidden=PEEK!=null||LIST.length<=shown;
+}
+function peek(i){const box=$('#qa-listbox');if(PEEK==null)KEEP=box.scrollTop;PEEK=i;render(false);box.scrollTop=0;}
+function unpeek(){if(PEEK==null)return;PEEK=null;render(false);if(KEEP!=null)$('#qa-listbox').scrollTop=KEEP;KEEP=null;}
+async function copyText(t,btn){
+  try{await navigator.clipboard.writeText(t);}
+  catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}
+  const old=btn.textContent;btn.textContent='✓ 已複製';setTimeout(()=>{btn.textContent=old;},1200);
+}
+$('#qa-list').onclick=e=>{
+  const el=e.target.closest('.qa-item'); if(!el) return;
+  if(String(getSelection()).trim()) return;          // 拖曳選字放開時不要切換鎖定
+  const cp=e.target.closest('[data-copy]');
+  if(cp){const r=LIST[+el.dataset.i];copyText(cp.dataset.copy==='title'?r.title:(r.answer||''),cp);return;}
+  if(e.target.closest('[data-close]')){unpeek();return;}
+  if(e.target.closest('.qa-body')) return;           // 點答案裡（選字、點連結）不收合
+  const i=+el.dataset.i;
+  if(PEEK===i) unpeek(); else peek(i);
+};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&PEEK!=null&&!$('section[data-page="qa"]').hidden)unpeek();});
+let timer;
+$('#qa-q').oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>render(true),180);};
+['#qa-year','#qa-sort','#qa-onlyfile','#qa-showgone'].forEach(s=>$(s).onchange=()=>render(true));
+$('#qa-more').onclick=()=>{shown+=200;render(false);};
+
+// ---- 匯出 Excel：瀏覽器用 SheetJS 產生 .xlsx（第一次按才下載），載不到就退回 CSV ----
+let XLSX_LIB=null;
+function loadXlsx(){
+  if(XLSX_LIB) return XLSX_LIB;
+  XLSX_LIB=new Promise((ok,no)=>{
+    if(window.XLSX) return ok(window.XLSX);
+    const sc=document.createElement('script');
+    sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    sc.onload=()=>window.XLSX?ok(window.XLSX):no(new Error('SheetJS 沒有載入'));
+    sc.onerror=()=>{XLSX_LIB=null;no(new Error('下載 SheetJS 失敗'));};
+    document.head.appendChild(sc);
+  });
+  return XLSX_LIB;
+}
+const COLS=['標題','發布機關','發布時間','更新時間','檢視時間','下版日期','維護單位','內容','附件','類型','已下架','網址','sid'];
+$('#qa-csv').onclick=async e=>{
+  if(!ALL) return;
+  const btn=e.target, old=btn.textContent, day=new Date().toISOString().slice(0,10);
+  const rows=LIST.map(r=>[r.title,r.dept,(r.published||'').slice(0,10),r.updated,r.reviewed,r.expire,r.maintainer,
+    (r.answer||'').replace(/\s+/g,' '),(r.files||[]).map(f=>f.name).join(' | '),
+    r.kind==='external'?'外部連結':'站內',r.gone||'',r.url,r.sid]);
+  btn.disabled=true;btn.textContent='產生中…';
+  try{
+    const X=await loadXlsx();
+    const ws=X.utils.aoa_to_sheet([COLS,...rows]);
+    const w=s=>[...String(s??'')].reduce((n,ch)=>n+(ch.charCodeAt(0)>255?2:1),0);
+    ws['!cols']=COLS.map((c,i)=>({wch:Math.min(60,Math.max(6,w(c),...rows.slice(0,500).map(r=>w(r[i])))+2)}));
+    ws['!autofilter']={ref:X.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:COLS.length-1}})};
+    const wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,'常見問答');
+    X.writeFile(wb,'常見問答_'+day+'.xlsx');
+    btn.textContent='已產生 ✓';setTimeout(()=>{btn.textContent=old;},2500);
+  }catch(err){
+    const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+    const csv='﻿'+[COLS.map(q).join(',')].concat(rows.map(r=>r.map(q).join(','))).join('\r\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    a.download='常見問答_'+day+'.csv';a.click();URL.revokeObjectURL(a.href);
+    btn.textContent=old;
+  }finally{btn.disabled=false;}
+};
 })();
 </script>
 </body>
