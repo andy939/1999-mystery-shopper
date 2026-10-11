@@ -296,6 +296,14 @@ section[data-page="qa"] .card.fill{gap:0}
 .qa-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;white-space:normal}
 .qa-acts a{display:inline!important;margin:0!important}
 .badge.gone{background:#fdf0ee;color:var(--danger)}
+.qa-ai{margin-top:10px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:6px;cursor:default}
+.qa-ai-hd{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.qa-ai-hd b{font-size:13px}.qa-ai-hd span{font-size:12px;color:var(--dim)}
+.qa-ai-none{font-size:13px;color:var(--dim)}
+.qa-aiq{border-top:1px dashed var(--line);padding:7px 0;font-size:13px}
+.qa-aiq .q{font-weight:600;margin-top:3px;line-height:1.55}
+.qa-aiq .p{color:var(--dim);font-size:12.5px;margin-top:2px}
+.qa-aiq.red .q{color:var(--dim);text-decoration:line-through}
 </style>
 </head>
 <body>
@@ -1420,6 +1428,22 @@ function boot(){
     el('ov').textContent='載入失敗';
   });
 }
+/* 給問答查詢用：查某則 FAQ 的智能題目、從那則直接進秘密客出題 */
+window.msBridge={
+  questions:function(sid){
+    if(!CS.bank)return null;
+    return CS.bank.filter(function(q){return q.faqs&&q.faqs.indexOf(sid)>=0})
+      .sort(function(a,b){return a.lv<b.lv?-1:a.lv>b.lv?1:0})
+      .map(function(q){return {id:q.id,lv:q.lv,q:q.q,type:q.type||[],points:q.points||[],red:isRed(q)}});
+  },
+  hasItem:function(sid){return !!csSidMap()[sid]},
+  script:function(sid){
+    var m=csSidMap()[sid];if(!m)return false;
+    S.seed=1000+Math.floor(Math.random()*9000);S.peek=null;
+    selectItem(m.org.org,m.item.q,'dlg');
+    return true;
+  }
+};
 boot();
 })();
 </script>
@@ -1526,7 +1550,24 @@ function bodyHtml(r){
      <span style="flex:1"></span>
      <button class="ghost sm" data-copy="title">📋 複製標題</button>
      <button class="ghost sm" data-copy="answer">📋 複製答案</button>
-     <button class="ghost sm" data-close="1">收合</button></div></div>`;
+     <button class="ghost sm" data-close="1">收合</button></div></div>`+aiBlock(r);
+}
+/* 全文下方：這則 FAQ 在智能題庫有哪些題目，以及直接進秘密客出題 */
+function aiBlock(r){
+  const B=window.msBridge; if(!B) return '';
+  const qs=B.questions(r.sid);
+  const can=!r.gone&&B.hasItem(r.sid);
+  let h=`<div class="qa-ai"><div class="qa-ai-hd"><b>智能題庫題目</b>${qs&&qs.length?`<span>${qs.length} 題</span>`:''}
+    <span style="flex:1"></span>
+    <button class="sm" data-script="1" ${can?'':`disabled title="${r.gone?'這則已下架':'秘密客題庫沒有這則'}，不能出題"`}>🎯 用這則秘密客出題</button></div>`;
+  if(qs===null) h+='<div class="qa-ai-none">智能題庫載入中…</div>';
+  else if(!qs.length) h+='<div class="qa-ai-none">這則還沒有智能題目；秘密客出題會用規則模板產生腳本。</div>';
+  else h+=qs.map(q=>`<div class="qa-aiq${q.red?' red':''}"><span class="badge">${esc(q.lv)}</span>
+      ${q.type.map(t=>`<span class="badge gray">${esc(t)}</span>`).join(' ')}
+      ${q.red?'<span class="badge gone">⚠ FAQ 已改版，暫停使用</span>':''}
+      <div class="q">${esc(q.q)}</div>
+      ${q.points.length?`<div class="p">應答要點：${esc(q.points.join('；'))}</div>`:''}</div>`).join('');
+  return h+'</div>';
 }
 function render(reset){
   if(!ALL) return;
@@ -1565,7 +1606,8 @@ $('#qa-list').onclick=e=>{
   const cp=e.target.closest('[data-copy]');
   if(cp){const r=LIST[+el.dataset.i];copyText(cp.dataset.copy==='title'?r.title:(r.answer||''),cp);return;}
   if(e.target.closest('[data-close]')){unpeek();return;}
-  if(e.target.closest('.qa-body')) return;           // 點答案裡（選字、點連結）不收合
+  if(e.target.closest('[data-script]')){if(window.msBridge)window.msBridge.script(LIST[+el.dataset.i].sid);return;}
+  if(e.target.closest('.qa-body')||e.target.closest('.qa-ai')) return;   // 點答案或題目區（選字、點連結）不收合
   const i=+el.dataset.i;
   if(PEEK===i) unpeek(); else peek(i);
 };
