@@ -1341,18 +1341,10 @@ function drawOv(){
   if(si&&(si.red||si.yellow))nb+='<i>|</i><a class="stale" href="https://github.com/andy939/1999-mystery-shopper/issues" target="_blank" rel="noopener" title="FAQ 改版後，這些題目的應答要點可能過時（檢查時間 '+esc(si.checked)+'）。🔴 已暫停出題。">⚠ 過時 '+
     (si.red?'🔴'+si.red+' ':'')+(si.yellow?'🟡'+si.yellow:'')+' 題</a>';
   el('ov').innerHTML='FAQ <b>'+num(DATA.totalFaq)+'</b> 則'+nb+'<i>|</i>局處 <b>'+ORGS.length+
-    '</b> 個<i>|</i>資料更新 <b>'+esc(DATA.generated)+'</b>'+crawlNote()+'<i>|</i>來源 '+esc(DATA.source);
+    '</b> 個<i>|</i>同步時間 <b>'+esc(CRAWL&&CRAWL.last_run?CRAWL.last_run:DATA.generated)+'</b><i>|</i>來源 '+esc(DATA.source);
 }
-/* 爬蟲官網沒變動時不會推新資料，「資料更新」日期就停在上次有變動那天；
-   另外讀爬蟲的 meta.json，顯示它最後一次檢查官網的時間，免得看起來像沒更新 */
+/* 同步時間＝爬蟲最後一次檢查市府官網的時間（官網沒變動時資料檔日期不會變，所以讀爬蟲的 meta.json） */
 var CRAWL=null;
-function crawlNote(){
-  if(!CRAWL||!CRAWL.last_run)return '';
-  var t=String(CRAWL.last_run),d=t.slice(0,10);
-  if(d<=DATA.generated)return '';
-  var n=['last_new','last_changed','last_gone','last_back'].reduce(function(a,k){return a+(CRAWL[k]||0)},0);
-  return '<span title="爬蟲最後一次檢查市府官網的時間">（爬蟲 '+esc(t.slice(5))+' 檢查'+(n?'，有 '+n+' 筆變動待同步':'，官網無變動')+'）</span>';
-}
 function init(){
   drawOv();
   fillSelect('f-persona',PERSONAS,S.persona);
