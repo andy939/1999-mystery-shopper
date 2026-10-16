@@ -841,13 +841,20 @@ function remember(){lsSet(LSL,{org:S.org?S.org.org:null,q:S.item?S.item.q:null,
   persona:S.persona,level:S.level})}
 
 /* ================= 選題 ================= */
-function terms(){return el('f-search').value.trim().split(/\s+/).filter(Boolean)}
+/* 搜尋比對前先統一：全形英數字→半形、全形空白→半形、英文不分大小寫。
+   一個字對一個字（長度不變），所以標黃的位置可以直接對回原文，畫面照樣顯示原文（例：打 KTV 找得到「ＫＴＶ」） */
+function fold(s){return String(s==null?'':s).replace(/[！-～]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0)})
+  .replace(/　/g,' ').toLowerCase()}
+window.msFold=fold;
+function terms(){return fold(el('f-search').value.trim()).split(/\s+/).filter(Boolean)}
 function hl(t,ts){
-  t=esc(t);if(!ts.length)return t;
-  var pat=ts.map(function(x){return esc(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')});
-  return t.replace(new RegExp('('+pat.join('|')+')','g'),'<mark>$1</mark>');
+  t=String(t==null?'':t);if(!ts.length)return esc(t);
+  var f=fold(t),on=[],i,k,out='',m=false;
+  ts.forEach(function(x){if(!x)return;for(i=f.indexOf(x);i>=0;i=f.indexOf(x,i+x.length))for(k=i;k<i+x.length;k++)on[k]=true});
+  for(k=0;k<t.length;k++){if(on[k]&&!m){out+='<mark>';m=true}if(!on[k]&&m){out+='</mark>';m=false}out+=esc(t[k])}
+  return m?out+'</mark>':out;
 }
-function hitAll(q,ts){for(var i=0;i<ts.length;i++)if(q.indexOf(ts[i])<0)return false;return true}
+function hitAll(q,ts){var f=fold(q);for(var i=0;i<ts.length;i++)if(f.indexOf(ts[i])<0)return false;return true}
 /* 「全部局處」：依點閱由高到低列出（只列前 300 題） */
 var ALL={org:'全部局處',all:true};
 function renderOrgs(){
@@ -856,7 +863,7 @@ function renderOrgs(){
     num(ts.length?ORGS.reduce(function(a,o){return a+o.items.filter(function(x){return hitAll(x.q,ts)}).length},0):DATA.totalFaq)+'</b></button>';
   for(i=0;i<ORGS.length;i++){
     var o=ORGS[i];
-    if(kw&&o.org.indexOf(kw)<0)continue;
+    if(kw&&fold(o.org).indexOf(fold(kw))<0)continue;
     var c=o.total;
     if(ts.length){c=0;for(var j=0;j<o.items.length;j++)if(hitAll(o.items[j].q,ts))c++;if(!c)continue}
     n++;
@@ -1458,7 +1465,8 @@ const SRC='https://andy939.github.io/faq-crawler/faq.json';
 const $=s=>document.querySelector(s);
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const nf=n=>(n==null||n==='')?'':Number(n).toLocaleString('zh-TW');
-const norm=s=>(s||'').toLowerCase();
+// 比對前統一全形半形、大小寫（跟秘密客出題同一套，一個字對一個字，標黃位置可直接對回原文）
+const norm=s=>String(s||'').replace(/[！-～]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/　/g,' ').toLowerCase();
 let ALL=null, LOADING=false, LIST=[], shown=200, PEEK=null, KEEP=null;
 
 window.qaOpen=function(){
@@ -1497,12 +1505,14 @@ function filtered(){
 }
 // 關鍵字用空白分隔，每個詞都要出現（不限順序、不限位置）
 function terms(){ return norm($('#qa-q').value).split(/\s+/).filter(Boolean); }
-const reEsc=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 function hl(text,ts){
-  const out=esc(text);
-  if(!ts||!ts.length) return out;
-  const pat=ts.map(t=>reEsc(esc(t))).filter(Boolean);
-  return pat.length?out.replace(new RegExp('('+pat.join('|')+')','gi'),'<mark>$1</mark>'):out;
+  text=String(text||'');
+  if(!ts||!ts.length) return esc(text);
+  const f=norm(text), on=[];
+  ts.forEach(t=>{ if(!t) return; for(let i=f.indexOf(t);i>=0;i=f.indexOf(t,i+t.length)) for(let k=i;k<i+t.length;k++) on[k]=true; });
+  let out='', m=false;
+  for(let k=0;k<text.length;k++){ if(on[k]&&!m){out+='<mark>';m=true;} if(!on[k]&&m){out+='</mark>';m=false;} out+=esc(text[k]); }
+  return m?out+'</mark>':out;
 }
 function hit(r,ts){
   if(!ts.length) return true;

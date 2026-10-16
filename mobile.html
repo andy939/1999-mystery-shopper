@@ -699,10 +699,14 @@ function renderProbes(){
 }
 
 /* ---------- 選題清單（單一捲動區，局處 → 主題 逐層進入） ---------- */
+/* 搜尋比對前統一全形半形、大小寫（跟桌機版同一套）：打 KTV 找得到「ＫＴＶ」 */
+function fold(s){return String(s==null?'':s).replace(/[！-～]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0)})
+  .replace(/　/g,' ').toLowerCase()}
+function has(s,kw){return fold(s).indexOf(fold(kw))>=0}
 function filterOrgs(kw){
   if(!kw)return ORGS.slice();
   var out=[];
-  for(var i=0;i<ORGS.length;i++)if(ORGS[i].org.indexOf(kw)>=0)out.push(ORGS[i]);
+  for(var i=0;i<ORGS.length;i++)if(has(ORGS[i].org,kw))out.push(ORGS[i]);
   return out;
 }
 function renderOrgList(list){
@@ -724,13 +728,13 @@ function renderTopicList(kw,scope){
   var items=[],html='',i,j;
   if(scope==='all'){
     outer:for(i=0;i<ORGS.length;i++)for(j=0;j<ORGS[i].items.length;j++){
-      if(ORGS[i].items[j].q.indexOf(kw)>=0)items.push([ORGS[i],ORGS[i].items[j]]);
+      if(has(ORGS[i].items[j].q,kw))items.push([ORGS[i],ORGS[i].items[j]]);
       if(items.length>=200)break outer;
     }
   }else if(S.org){
     for(i=0;i<S.org.items.length;i++){
       var it=S.org.items[i];
-      if(kw&&it.q.indexOf(kw)<0&&!(it.a&&it.a.indexOf(kw)>=0))continue;
+      if(kw&&!has(it.q,kw)&&!(it.a&&has(it.a,kw)))continue;
       items.push([S.org,it]);
     }
   }

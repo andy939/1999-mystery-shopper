@@ -11,18 +11,9 @@ ans = {}
 for f in glob.glob(G + '/in_*.json'):
     for r in json.load(open(f, encoding='utf-8')):
         ans[r['sid']] = r
-# L0 關鍵詞題：用全部 FAQ（標題＋答覆）重新驗算關鍵詞的符合則數，不信任出題端回報的 hits
-CORPUS = None
-def kw_hits(q):
-    global CORPUS
-    if CORPUS is None:
-        m = json.load(open(os.path.join(SITE, 'data', 'index.json'), encoding='utf-8')); CORPUS = {}
-        for o in m['orgs']:
-            aa = json.load(open(os.path.join(SITE, 'data', o['f'] + '.json'), encoding='utf-8'))
-            for r, a in zip(o['items'], aa):
-                if r[4]: CORPUS[r[4]] = r[0] + (a or '')
-    ts = q.split()
-    return [s for s, t in CORPUS.items() if all(w in t for w in ts)]
+# L0 關鍵詞題：用網站「問答查詢」同一套比對（統一全形半形、含發布單位）重新驗算，不信任出題端回報的 hits
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from kwsearch import search as kw_hits
 def norm(t): return re.sub(r'[\s，。、；：:,.（）()「」『』？?！!\-－—/／]', '', str(t))
 
 bank = json.load(open(SITE + '/cstest.json', encoding='utf-8'))
