@@ -33,7 +33,8 @@ for f in sorted(glob.glob(G + '/out_*.json')):
         elif q['lv'] != 'L0' and not (8 <= len(q['q']) <= 120): why = '長度'
         elif q['lv'] == 'L0':
             hit = kw_hits(q['q'])
-            if q['faqs'][0] not in hit: why = 'L0 對不到這則'
+            if re.search(r'[0-9A-Za-z０-９Ａ-Ｚａ-ｚ]', q['q']): why = 'L0 含數字或英文'   # 使用者規定 L0 只用中文詞
+            elif q['faqs'][0] not in hit: why = 'L0 對不到這則'
             elif len(hit) > 8: why = 'L0 符合太多則'
             else:
                 q['hits'] = len(hit)
