@@ -3,6 +3,8 @@
 做法：上次確認時的 FAQ 內容存在 tools/faq_snapshot.json，拿來跟 data/ 的最新 FAQ 比對。
   🔴 一定要改：FAQ 已下架；或應答要點裡的數字，舊版 FAQ 有、新版沒有（例：婚假 8 日→14 日）
   🟡 人工確認：應答要點的文字在新版答覆找不到
+  L0 關鍵詞題每次都用最新 FAQ 重新搜一次（kwsearch.py 嚴格比對）：
+    搜不到這則 → 🔴；符合超過 8 則 → 🟡
   另列答覆有改的 FAQ（附相似度）
 
 輸出：
@@ -86,6 +88,18 @@ for s in used:
             miss = sorted(n for n in nums(p) if n in on and n not in nn)
             if miss: flag(q, 'red', f'要點「{p}」的 {"、".join(miss)} 已不在新版 FAQ')
             elif overlap(p, osrc) >= 0.6 and overlap(p, nsrc) < 0.6: flag(q, 'yellow', f'要點「{p}」在新版 FAQ 找不到')
+
+# L0 關鍵詞題：每次都用最新 FAQ 重新搜一次（跟問答查詢同一套嚴格比對，官網原字）。
+# FAQ 改寫用詞或新 FAQ 上架都可能讓關鍵詞失效，跟快照有沒有變無關，所以每題都搜。
+sys.path.insert(0, TOOLS)
+from kwsearch import search as kw_search
+for q in bank:
+    if q['lv'] != 'L0' or not q['faqs'] or q['faqs'][0] not in cur: continue
+    hits = kw_search(q['q'])
+    if q['faqs'][0] not in hits:
+        flag(q, 'red', f'L0 關鍵詞「{q["q"]}」已搜不到這則 FAQ')
+    elif len(hits) > 8:
+        flag(q, 'yellow', f'L0 關鍵詞「{q["q"]}」符合 {len(hits)} 則（太廣）')
 
 red = [v for v in items.values() if v['level'] == 'red']
 yel = [v for v in items.values() if v['level'] == 'yellow']
