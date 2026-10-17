@@ -1,9 +1,26 @@
 {
- "checked": "2026-10-16 21:16",
- "faqDate": "2026-10-16",
+ "checked": "2026-10-17 08:43",
+ "faqDate": "2026-10-17",
  "red": 0,
- "yellow": 0,
- "items": [],
- "changed": [],
+ "yellow": 1,
+ "items": [
+  {
+   "id": "JL04-117a",
+   "level": "yellow",
+   "why": [
+    "要點「115年登記已額滿」在新版 FAQ 找不到"
+   ]
+  }
+ ],
+ "changed": [
+  {
+   "sid": "BFC9A3F543D32E41",
+   "title": "有關熱水器遷移或更換補助3000元相關資訊？",
+   "ratio": 0.6,
+   "ids": [
+    "JL04-117a"
+   ]
+  }
+ ],
  "gone": []
 }
