@@ -507,6 +507,14 @@ function cite(f){return f.u+'〈'+(f.q.length>18?f.q.slice(0,18)+'…':f.q)+'〉
   (f.sid?' #'+f.sid.slice(0,8):'')}
 function probesFor(item){
   var txt=item.q+' '+item.a,sn=sentences(item.a),hit=[],out=[],i,j;
+  /* 有多輪追問腳本的 FAQ：追問一律用腳本（一句只問一件事，答案都在本則 FAQ 內），不再套通用模板與相鄰 FAQ 延伸題 */
+  var fu=AI.fu&&item.sid&&AI.fu[item.sid];
+  if(fu){
+    for(i=0;i<fu.turns.length;i++)out.push({q:fu.turns[i].q,why:'FAQ 追問：答案在本則 FAQ 內',ans:fu.turns[i].quote,src:item,kind:'FAQ 追問'});
+    var tl=shuffled(TAIL_PROBES);
+    out.push({q:tl[0][0],why:tl[0][1],ans:'',src:null,kind:'服務行為'});
+    return out;
+  }
   /* AI 題的條件判斷／錯誤前提／多意圖題排最前面，正解用它的應答要點 */
   var deep=shuffled(aiFor(item).filter(function(q){return q.lv==='L3'||q.lv==='L4'}));
   for(i=0;i<deep.length&&i<2;i++){var d=deep[i];
@@ -562,17 +570,21 @@ function aiPick(list,lvs){
 }
 function loadAI(cb){
   function get(u){return fetch(u,{cache:'no-cache'}).then(function(r){if(!r.ok)throw 0;return r.json()})}
-  Promise.all([get('cstest.json').catch(function(){return []}),get('stale.json').catch(function(){return null})])
+  Promise.all([get('cstest.json').catch(function(){return []}),get('stale.json').catch(function(){return null}),
+               get('followups.json').catch(function(){return []})])
     .then(function(r){
       AI.bank=r[0];AI.stale={};
       if(r[1]&&r[1].items)r[1].items.forEach(function(it){AI.stale[it.id]=it});
+      AI.fu={};(r[2]||[]).forEach(function(f){AI.fu[f.sid]=f});   /* 多輪追問腳本（followups.json） */
       AIQ=null;cb();
     });
 }
 /* 開場（依難度）：有 AI 題就用 AI 題的問法，沒有才用規則模板 */
 function openingLines(item,level){
   var p=PERSONAS[S.persona],lines=[{who:'客',t:p.open}],ai=aiFor(item),a;
-  if(level==='L1'){a=aiPick(ai,['L1','L2']);lines.push({who:'客',t:a?esc(a.q):'我想請問：'+item.q});}
+  var fu=AI.fu&&item&&item.sid&&AI.fu[item.sid];
+  if(level==='L1'&&fu){lines.push({who:'客',t:esc(fu.open.q)});}   /* 有多輪追問腳本：開場用腳本的開場句 */
+  else if(level==='L1'){a=aiPick(ai,['L1','L2']);lines.push({who:'客',t:a?esc(a.q):'我想請問：'+item.q});}
   else if(level==='L2'&&(a=aiPick(ai,['L2','L1']))){
     lines.push({who:'客',t:'就是…'+esc(a.q)+'<em>'+pick(VAR.pause)+'</em>'});
   }else if(level==='L2'){
