@@ -1,7 +1,7 @@
 {
- "checked": "2026-10-20 07:49",
- "faqDate": "2026-10-20",
- "red": 0,
+ "checked": "2026-10-21 08:44",
+ "faqDate": "2026-10-21",
+ "red": 9,
  "yellow": 2,
  "items": [
   {
@@ -12,10 +12,73 @@
    ]
   },
   {
+   "id": "H00-011a",
+   "level": "red",
+   "why": [
+    "FAQ 已下架"
+   ]
+  },
+  {
+   "id": "H00-011b",
+   "level": "red",
+   "why": [
+    "FAQ 已下架"
+   ]
+  },
+  {
+   "id": "H00-011c",
+   "level": "red",
+   "why": [
+    "FAQ 已下架"
+   ]
+  },
+  {
+   "id": "H08-049a",
+   "level": "red",
+   "why": [
+    "FAQ 已下架"
+   ]
+  },
+  {
+   "id": "H08-049b",
+   "level": "red",
+   "why": [
+    "FAQ 已下架"
+   ]
+  },
+  {
+   "id": "H08-049c",
+   "level": "red",
+   "why": [
+    "FAQ 已下架"
+   ]
+  },
+  {
+   "id": "JL01-114a",
+   "level": "red",
+   "why": [
+    "FAQ 已下架"
+   ]
+  },
+  {
    "id": "JL04-117a",
    "level": "yellow",
    "why": [
     "要點「115年登記已額滿」在新版 FAQ 找不到"
+   ]
+  },
+  {
+   "id": "JL08-113a",
+   "level": "red",
+   "why": [
+    "FAQ 已下架"
+   ]
+  },
+  {
+   "id": "KL08-035a",
+   "level": "red",
+   "why": [
+    "FAQ 已下架"
    ]
   }
  ],
@@ -70,5 +133,10 @@
    ]
   }
  ],
- "gone": []
+ "gone": [
+  "20D74B268C796285",
+  "38498ADE99E86F25",
+  "8B9BA2FEDE2E2F1D",
+  "EBCFD5E8256D1854"
+ ]
 }
