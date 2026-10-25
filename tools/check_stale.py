@@ -23,6 +23,7 @@ ROOT = os.path.dirname(TOOLS)
 SNAP = os.path.join(TOOLS, 'faq_snapshot.json')
 REPORT = os.path.join(TOOLS, '過時檢查報告.md')
 OUT = os.path.join(ROOT, 'stale.json')
+REMOVED = os.path.join(TOOLS, 'removed.json')   # 自動下架的題目紀錄（日期、題號、原因），補題時參考
 
 
 def load_current():
@@ -104,6 +105,35 @@ for q in bank:
 red = [v for v in items.values() if v['level'] == 'red']
 yel = [v for v in items.values() if v['level'] == 'yellow']
 now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
+
+# --prune（GitHub Actions 每天用）：使用者決定「不修題，直接下架，之後補題再出新的」——
+#   🔴 題目、🟡 題目、以及「FAQ 內容有變」的那則 FAQ 底下所有題目，一律從題庫下架，記到 tools/removed.json。
+# 快照同時更新：FAQ 已下架的拿掉；有改版的換成新版（題目已下架，之後依新版出題）。
+if '--prune' in sys.argv:
+    changed_sids = {c['sid'] for c in changed}
+    rid = {v['id'] for v in items.values()} | {q['id'] for q in bank if set(q['faqs']) & changed_sids}
+    yel_sids = set()
+    dirty = False
+    if rid:
+        log = json.load(open(REMOVED, encoding='utf-8')) if os.path.exists(REMOVED) else []
+        for q in bank:
+            if q['id'] in rid:
+                log.append({'date': now.strftime('%Y-%m-%d'), 'id': q['id'], 'lv': q['lv'], 'q': q['q'],
+                            'faqs': q['faqs'], 'why': items[q['id']]['why'] if q['id'] in items else ['FAQ 內容有變']})
+        json.dump(log, open(REMOVED, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+        bank = [q for q in bank if q['id'] not in rid]
+        json.dump(bank, open(os.path.join(ROOT, 'cstest.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+        dirty = True
+    for s in [s for s in snap if s not in cur]:
+        del snap[s]; dirty = True
+    for c in changed:
+        if c['sid'] not in yel_sids:
+            snap[c['sid']] = {'q': cur[c['sid']]['q'], 'a': cur[c['sid']]['a']}; dirty = True
+    if dirty:
+        json.dump(snap, open(SNAP, 'w', encoding='utf-8'), ensure_ascii=False)
+        print(f'自動下架 {len(rid)} 題，快照更新；重新檢查…')
+        import subprocess
+        sys.exit(subprocess.run([sys.executable, os.path.abspath(__file__)]).returncode)
 out = {'checked': now.strftime('%Y-%m-%d %H:%M'), 'faqDate': meta['generated'],
        'red': len(red), 'yellow': len(yel), 'items': sorted(items.values(), key=lambda v: v['id']),
        'changed': sorted(changed, key=lambda c: c['ratio']), 'gone': gone}
