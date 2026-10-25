@@ -285,6 +285,7 @@ section[data-page="qa"] .card.fill{gap:0}
 #qa-listbox{flex:1;min-height:0;overflow:auto;padding-right:4px}
 .qa-item{border:1px solid var(--line);border-radius:8px;padding:10px 13px;margin-bottom:7px;cursor:pointer}
 .qa-item:hover{border-color:var(--accent)}
+.qa-cut{margin:12px 0 8px;padding-top:8px;border-top:1px dashed var(--line);color:var(--dim);font-size:12.5px}
 .qa-item h3{margin:0;font-size:14.5px;font-weight:600;line-height:1.45}
 .qa-item.open{background:var(--soft);border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent);cursor:default}
 .qa-item.open h3{position:sticky;top:0;z-index:1;background:var(--soft);color:var(--deep);cursor:pointer;
@@ -408,14 +409,15 @@ section[data-page="qa"] .card.fill{gap:0}
   <section data-page="qa" hidden>
     <div class="card fill">
       <div class="qa-bar">
-        <input id="qa-q" type="search" placeholder="關鍵字（空白分隔多個詞）" style="flex:1;min-width:220px">
+        <input id="qa-q" type="search" placeholder="關鍵字，或直接打一整句話" style="flex:1;min-width:220px">
         <input type="hidden" id="qa-dept">
         <select id="qa-year"><option value="">全部年份</option></select>
         <select id="qa-sort">
+          <option value="rel">相關度優先</option>
           <option value="date-">發布日期新→舊</option>
           <option value="date+">發布日期舊→新</option>
+          <option value="hits">點閱數多→少</option>
           <option value="exp+">下版日期近→遠</option>
-          <option value="hits-">點閱數高→低</option>
           <option value="title">標題</option>
         </select>
         <label><input type="checkbox" id="qa-onlyfile"> 只看有附件</label>
@@ -1506,23 +1508,78 @@ function init(){
   render(true);
 }
 
-// ---- 篩選 ----
+// ---- BM25（跟爬蟲網站「搜尋」同一套：中文字元 bigram、k1=1.5、b=0.75；秘密客只搬這個，不搬語意）----
+const BM={idx:null};
+function bmTokens(s){
+  s=norm(s);
+  const out=s.match(/[a-z0-9]+/g)||[];
+  for(const run of (s.match(/[一-鿿]+/g)||[])){
+    if(run.length===1){ out.push(run); continue; }
+    for(let i=0;i<run.length-1;i++) out.push(run.slice(i,i+2));
+  }
+  return out;
+}
+function bmBuild(){
+  if(BM.idx) return BM.idx;
+  const inv=new Map(), dl=new Float32Array(ALL.length);
+  for(let i=0;i<ALL.length;i++){
+    const r=ALL[i], tf=new Map(), toks=bmTokens(`${r.title||''}。${r.dept||''}。${r.answer||''}`);
+    for(const w of toks) tf.set(w,(tf.get(w)||0)+1);
+    dl[i]=toks.length;
+    for(const [w,f] of tf){ let p=inv.get(w); if(!p){p=[];inv.set(w,p);} p.push(i,f); }
+  }
+  let sum=0; for(let i=0;i<dl.length;i++) sum+=dl[i];
+  const N=ALL.length, idf=new Map();
+  for(const [w,p] of inv) idf.set(w,Math.log(1+(N-p.length/2+0.5)/(p.length/2+0.5)));
+  BM.idx={inv,idf,dl,avgdl:sum/N,N,pos:new Map(ALL.map((r,i)=>[r.sid,i]))};
+  return BM.idx;
+}
+function bmScore(q){
+  const ix=bmBuild(), K1=1.5, B=0.75, sc=new Float32Array(ix.N);
+  for(const w of new Set(bmTokens(q))){
+    const p=ix.inv.get(w); if(!p) continue;
+    const iw=ix.idf.get(w);
+    for(let j=0;j<p.length;j+=2){ const i=p[j], f=p[j+1]; sc[i]+=iw*f*(K1+1)/(f+K1*(1-B+B*ix.dl[i]/ix.avgdl)); }
+  }
+  return sc;
+}
+
+// ---- 篩選與排序 ----
+// 搜尋＝關鍵字＋BM25：字面符合的全部列出；不到 50 筆用 BM25 補相近的；字面一筆都沒有就整份依 BM25 排
+const AUTO_FILL=50;
 function filtered(){
   const ts=terms(), dept=$('#qa-dept').value, year=$('#qa-year').value,
         onlyfile=$('#qa-onlyfile').checked, gone=$('#qa-showgone').checked;
-  const out=ALL.filter(r=>{
+  const base=ALL.filter(r=>{
     if(!gone && r.gone) return false;
     if(dept && !norm(r.dept).includes(norm(dept))) return false;
     if(year && !(r.published||'').startsWith(year)) return false;
     if(onlyfile && !(r.files&&r.files.length)) return false;
-    return hit(r,ts);
+    return true;
   });
+  const auto=ts.length>0;
+  let sc=null,pos=null;
+  if(auto){ sc=bmScore($('#qa-q').value.trim()); pos=bmBuild().pos; }
+  const score=r=>sc[pos.get(r.sid)];
+  const byDate=(a,b)=>(b.published||'').localeCompare(a.published||'');
   const s=$('#qa-sort').value;
-  out.sort(s==='title' ? (a,b)=>a.title.localeCompare(b.title,'zh-Hant')
-    : s==='hits-' ? (a,b)=>(b.hits||0)-(a.hits||0)
+  const cmp = s==='title' ? (a,b)=>a.title.localeCompare(b.title,'zh-Hant')
     : s==='date+' ? (a,b)=>(a.published||'').localeCompare(b.published||'')
+    : s==='hits'  ? (a,b)=>((b.hits||0)-(a.hits||0))||byDate(a,b)
     : s==='exp+'  ? (a,b)=>(a.expire||'9999').localeCompare(b.expire||'9999')
-    : (a,b)=>(b.published||'').localeCompare(a.published||''));
+    : s==='rel'&&auto ? (a,b)=>(score(b)-score(a))||byDate(a,b)
+    : byDate;
+  if(!auto) return base.sort(cmp);
+  const exact=base.filter(r=>hit(r,ts)).sort(cmp);
+  const byScore=(a,b)=>score(b)-score(a);
+  let out=exact; const info={exact:exact.length,extra:0,fallback:false};
+  if(!exact.length){ out=base.filter(r=>score(r)>0).sort(byScore).slice(0,AUTO_FILL); info.fallback=true; }
+  else if(exact.length<AUTO_FILL){
+    const have=new Set(exact.map(r=>r.sid));
+    const more=base.filter(r=>!have.has(r.sid)&&score(r)>0).sort(byScore).slice(0,AUTO_FILL-exact.length);
+    info.extra=more.length; out=exact.concat(more);
+  }
+  out.info=info;
   return out;
 }
 // 關鍵字用空白分隔，每個詞都要出現（不限順序、不限位置）
@@ -1608,9 +1665,14 @@ function render(reset){
   orgPanel();
   const ts=terms();
   const idx=PEEK!=null?[PEEK]:LIST.slice(0,shown).map((_,i)=>i);
+  const info=LIST.info;
   $('#qa-count').textContent=PEEK!=null?'🔒 已鎖定這題，點標題、按「收合」或 Esc 回到清單'
-    :`符合 ${nf(LIST.length)} 筆`+(LIST.length>shown?`，顯示前 ${nf(shown)} 筆`:'');
-  $('#qa-list').innerHTML=idx.map(i=>{const r=LIST[i],open=i===PEEK;return `
+    :(info?(info.fallback?`沒有字面完全符合的，改依相近度排序，列出 ${nf(LIST.length)} 筆`
+                         :`字面符合 ${nf(info.exact)} 筆`+(info.extra?`，另補 ${nf(info.extra)} 筆相近的`:''))
+          :`符合 ${nf(LIST.length)} 筆`)+(LIST.length>shown?`，顯示前 ${nf(shown)} 筆`:'');
+  $('#qa-list').innerHTML=idx.map(i=>{const r=LIST[i],open=i===PEEK;
+    const cut=(PEEK==null&&info&&info.extra&&i===info.exact)?'<div class="qa-cut">以下字面沒有完全符合，但字詞相近</div>':'';
+    return `${cut}
     <div class="qa-item${open?' open':''}" data-i="${i}">
       <h3>${hl(r.title,ts)}</h3>
       <div class="qa-meta">
