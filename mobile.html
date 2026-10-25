@@ -1002,6 +1002,13 @@ function boot(){
       if(!el('topic-list').hidden)renderPick();
       if(S.item&&S.pr)rebuild();
     });
+    /* 點閱數直接讀爬蟲每天更新的 hits.json（sid→點閱），不用等資料同步；讀不到就沿用 data/ 裡的數字 */
+    fetch('https://andy939.github.io/faq-crawler/hits.json',{cache:'no-cache'}).then(function(r){return r.json()})
+      .then(function(h){
+        ORGS.forEach(function(o){o.items.forEach(function(it){if(it.sid&&h[it.sid]!=null)it.h=h[it.sid]})});
+        if(!el('topic-list').hidden)renderPick();
+        if(S.item&&S.pr)rebuild();
+      },function(){});
   },function(){
     var t=document.querySelector('.bar h1')||document.querySelector('.sh-top h2');
     if(t)t.textContent='題庫載入失敗，請確認網路後重新整理';
