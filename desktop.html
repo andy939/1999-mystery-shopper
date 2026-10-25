@@ -415,6 +415,7 @@ section[data-page="qa"] .card.fill{gap:0}
           <option value="date-">發布日期新→舊</option>
           <option value="date+">發布日期舊→新</option>
           <option value="exp+">下版日期近→遠</option>
+          <option value="hits-">點閱數高→低</option>
           <option value="title">標題</option>
         </select>
         <label><input type="checkbox" id="qa-onlyfile"> 只看有附件</label>
@@ -1491,8 +1492,10 @@ window.qaOpen=function(){
   if(ALL||LOADING) return;
   LOADING=true;
   $('#qa-count').textContent='載入問答資料中…（第一次約需幾秒）';
-  fetch(SRC,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-    .then(d=>{ALL=d;LOADING=false;init();},
+  // 點閱數另外讀爬蟲的 hits.json（sid→點閱，faq.json 裡沒有），讀不到就不顯示點閱
+  const hitsP=fetch('https://andy939.github.io/faq-crawler/hits.json',{cache:'no-cache'}).then(r=>r.ok?r.json():{}).catch(()=>({}));
+  Promise.all([fetch(SRC,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}),hitsP])
+    .then(([d,h])=>{d.forEach(r=>{if(r.sid&&h[r.sid]!=null)r.hits=h[r.sid];});ALL=d;LOADING=false;init();},
           e=>{LOADING=false;$('#qa-count').innerHTML='<span style="color:var(--danger)">載入失敗：'+
             esc(e.message)+'。請確認網路後，再點一次左邊的「問答查詢」</span>';});
 };
@@ -1516,6 +1519,7 @@ function filtered(){
   });
   const s=$('#qa-sort').value;
   out.sort(s==='title' ? (a,b)=>a.title.localeCompare(b.title,'zh-Hant')
+    : s==='hits-' ? (a,b)=>(b.hits||0)-(a.hits||0)
     : s==='date+' ? (a,b)=>(a.published||'').localeCompare(b.published||'')
     : s==='exp+'  ? (a,b)=>(a.expire||'9999').localeCompare(b.expire||'9999')
     : (a,b)=>(b.published||'').localeCompare(a.published||''));
@@ -1613,6 +1617,7 @@ function render(reset){
         <span>${esc(r.dept)}</span>
         <span>發布 ${esc((r.published||'').slice(0,10)||'—')}</span>
         ${r.updated?`<span title="${esc(r.updated)}">更新 ${esc(r.updated.slice(0,10))}</span>`:''}
+        ${r.hits!=null?`<span>點閱 ${nf(r.hits)}</span>`:''}
         ${r.files&&r.files.length?`<span class="badge">附件 ${r.files.length}</span>`:''}
         ${r.kind==='external'?'<span class="badge">外部連結</span>':''}
         ${r.gone?`<span class="badge gone">已下架 ${esc(r.gone)}</span>`:''}
@@ -1659,11 +1664,11 @@ function loadXlsx(){
   });
   return XLSX_LIB;
 }
-const COLS=['標題','發布機關','發布時間','更新時間','檢視時間','下版日期','維護單位','內容','附件','類型','已下架','網址','sid'];
+const COLS=['標題','發布機關','發布時間','更新時間','檢視時間','下版日期','維護單位','點閱數','內容','附件','類型','已下架','網址','sid'];
 $('#qa-csv').onclick=async e=>{
   if(!ALL) return;
   const btn=e.target, old=btn.textContent, day=new Date().toISOString().slice(0,10);
-  const rows=LIST.map(r=>[r.title,r.dept,(r.published||'').slice(0,10),r.updated,r.reviewed,r.expire,r.maintainer,
+  const rows=LIST.map(r=>[r.title,r.dept,(r.published||'').slice(0,10),r.updated,r.reviewed,r.expire,r.maintainer,r.hits??'',
     (r.answer||'').replace(/\s+/g,' '),(r.files||[]).map(f=>f.name).join(' | '),
     r.kind==='external'?'外部連結':'站內',r.gone||'',r.url,r.sid]);
   btn.disabled=true;btn.textContent='產生中…';
