@@ -1178,12 +1178,26 @@ function drawMaint(){
     LV.map(function(x){return row(x[0],x[1],by[x[0]])}).join('')+row('合計','',all,true)+'</tbody></table></div>'+
     '<p class="hint" style="margin-top:10px">FAQ 共 '+nFaq.toLocaleString()+' 則（秘密客題庫）。涵蓋率＝有這個難度題目的 FAQ ÷ 全部 FAQ。'+
     '「暫停」＝FAQ 已改版、等每天自動檢查下架的題目。'+(CS.staleInfo&&CS.staleInfo.checked?'　上次過時檢查 '+CS.staleInfo.checked:'')+'</p>'+
+    '<div id="maint-tip"></div>'+
     '<h3 style="margin:22px 0 4px;font-size:15px">還沒有題目的 FAQ <span style="font-weight:400;color:var(--dim);font-size:12.5px">依點閱數多→少，點閱高＝民眾常問，優先出題</span></h3>'+
     '<div id="maint-none"></div>';
   /* 沒有任何題目的 FAQ（點閱數用爬蟲 hits.json 覆蓋過的 item.h） */
   var m=csSidMap(),none=[];
   for(q in m)if(!all.f[q])none.push(m[q]);
   none.sort(function(a,b){return (b.item.h||0)-(a.item.h||0)});
+  /* 補題建議：跟著上面的數字自動變 */
+  var cov=function(k){return by[k]?Object.keys(by[k].f).length:0},
+      low=['L2','L3','L4'].sort(function(a,b){return cov(a)-cov(b)})[0],
+      top=none.slice(0,100),og={};
+  top.forEach(function(x){og[x.org.org]=(og[x.org.org]||0)+1});
+  var ogs=Object.keys(og).sort(function(a,b){return og[b]-og[a]}).slice(0,3).map(function(k){return k+' '+og[k]+' 則'});
+  el('maint-tip').innerHTML='<div class="card" style="max-width:760px;margin-top:14px;padding:10px 14px;background:var(--soft)">'+
+    '<b>補題建議</b><ol style="margin:6px 0 0;padding-left:20px;line-height:1.8">'+
+    '<li>先補<b>還沒有題目的 FAQ</b>（'+none.length.toLocaleString()+' 則），照下方點閱數順序出 L1，等於順便補完「每則至少一題」。</li>'+
+    (ogs.length?'<li>點閱前 100 則裡較集中的局處：'+esc(ogs.join('、'))+'。</li>':'')+
+    '<li>都有題目之後，補涵蓋率最低的進階難度：目前是 <b>'+low+'</b>（'+(nFaq?Math.round(cov(low)/nFaq*100):0)+'%）。</li>'+
+    '<li>L0 關鍵詞題最好維護（每天自動檢查還找不找得到 FAQ），想快速增加題數可以補 L0。</li>'+
+    '<li>要補題時告訴 Claude，例如「點閱前 200 則補 L1」或「L3 補 300 題」。</li></ol></div>';
   var shown=100;
   function drawNone(){
     el('maint-none').innerHTML='<p class="hint" style="margin:0 0 6px">共 '+none.length.toLocaleString()+' 則'+(none.length>shown?'，顯示前 '+shown+' 則':'')+'</p>'+
