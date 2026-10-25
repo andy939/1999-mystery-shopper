@@ -329,6 +329,7 @@ section[data-page="qa"] .card.fill{gap:0}
   <button data-page="probe"><i>❓</i><span>追問清單</span><b class="k" id="k-probe"></b></button>
   <button data-page="key"><i>✅</i><span>標準答案</span><b class="k" id="k-key"></b></button>
   <button data-page="src"><i>📎</i><span>FAQ 來源</span><b class="k" id="k-src"></b></button>
+  <button data-page="maint"><i>🛠</i><span>資料維護</span></button>
   <div class="sidenote" id="sidenote">尚未選題</div>
 </aside>
 
@@ -384,6 +385,8 @@ section[data-page="qa"] .card.fill{gap:0}
     <div class="scroll" id="p-key"></div><div class="pager"></div></div></section>
   <section data-page="src" hidden><div class="card fill"><h2>參考 FAQ 來源 <span>腳本每一句專員台詞都來自這些條目</span><span class="tail" id="t-src"></span></h2>
     <div class="scroll" id="p-src"></div><div class="pager"></div></div></section>
+  <section data-page="maint" hidden><div class="card fill"><h2>資料維護 <span>智能題庫各難度題數</span></h2>
+    <div class="scroll" id="p-maint">載入中…</div></div></section>
   <section data-page="cs" hidden>
     <div class="card" style="flex:none">
       <div class="row csbar">
@@ -829,8 +832,9 @@ function goPage(key){
   var bs=document.querySelectorAll('.side button[data-page]'),ss=document.querySelectorAll('section[data-page]'),i;
   for(i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-page')===key);
   for(i=0;i<ss.length;i++)ss[i].hidden=ss[i].getAttribute('data-page')!==key;
-  el('cur').hidden=key==='pick'||key==='cs'||key==='qa';
-  el('sidenote').hidden=key==='pick'||key==='cs'||key==='qa';
+  el('cur').hidden=key==='pick'||key==='cs'||key==='qa'||key==='maint';
+  el('sidenote').hidden=key==='pick'||key==='cs'||key==='qa'||key==='maint';
+  if(key==='maint')csLoadBank(drawMaint);
   if(key==='qa'&&window.qaOpen)window.qaOpen();   /* 問答資料點進來才下載 */   /* 選題頁只管選，抽到題目後才在腳本頁顯示題目 */
   var sc=document.querySelector('section[data-page="'+key+'"] .scroll');if(sc)sc.scrollTop=0;
   if(key==='pick')keepCurrentInView();
@@ -1156,6 +1160,25 @@ function csLoadBank(cb){
     });
 }
 function isRed(q){var x=CS.stale&&CS.stale[q.id];return !!(x&&x.level==='red')}
+/* 維護頁：智能題庫各難度題數、涵蓋幾則 FAQ、暫停（FAQ 已改版）幾題 */
+function drawMaint(){
+  var LV=[['L0','關鍵詞'],['L1','直述'],['L2','口語改寫'],['L3','情境＋條件判斷'],['L4','多意圖／錯誤前提']],
+      by={},all={n:0,f:{},red:0},nFaq=Object.keys(csSidMap()).length,i,j,q,b;
+  for(i=0;i<CS.bank.length;i++){q=CS.bank[i];
+    b=by[q.lv]=by[q.lv]||{n:0,f:{},red:0};
+    b.n++;all.n++;if(isRed(q)){b.red++;all.red++}
+    for(j=0;j<(q.faqs||[]).length;j++){b.f[q.faqs[j]]=1;all.f[q.faqs[j]]=1}}
+  for(q in by)if(!LV.some(function(x){return x[0]===q}))LV.push([q,'']);
+  function row(name,desc,x,strong){x=x||{n:0,f:{},red:0};var nf=Object.keys(x.f).length;
+    return '<tr'+(strong?' style="font-weight:700"':'')+'><td>'+name+'</td><td>'+desc+'</td><td style="text-align:right">'+x.n.toLocaleString()+
+      '</td><td style="text-align:right">'+nf.toLocaleString()+'</td><td style="text-align:right">'+(nFaq?Math.round(nf/nFaq*100):0)+'%</td>'+
+      '<td style="text-align:right">'+(x.red?'<span style="color:var(--danger)">'+x.red+'</span>':'0')+'</td></tr>'}
+  el('p-maint').innerHTML='<div class="wrap" style="max-width:760px"><table><thead><tr><th>難度</th><th>說明</th>'+
+    '<th style="text-align:right">題數</th><th style="text-align:right">涵蓋 FAQ</th><th style="text-align:right">涵蓋率</th><th style="text-align:right">暫停</th></tr></thead><tbody>'+
+    LV.map(function(x){return row(x[0],x[1],by[x[0]])}).join('')+row('合計','',all,true)+'</tbody></table></div>'+
+    '<p class="hint" style="margin-top:10px">FAQ 共 '+nFaq.toLocaleString()+' 則（秘密客題庫）。涵蓋率＝有這個難度題目的 FAQ ÷ 全部 FAQ。'+
+    '「暫停」＝FAQ 已改版、等每天自動檢查下架的題目。'+(CS.staleInfo&&CS.staleInfo.checked?'　上次過時檢查 '+CS.staleInfo.checked:'')+'</p>';
+}
 /* 局處輸入框：完全相符用該局處；只打部分字且只對到一個局處也算；空白或對不到＝全部局處 */
 function csOrgName(){
   var v=el('cs-org').value.trim(),hit=[],i;
