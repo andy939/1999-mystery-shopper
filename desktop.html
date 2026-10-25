@@ -1177,7 +1177,23 @@ function drawMaint(){
     '<th style="text-align:right">題數</th><th style="text-align:right">涵蓋 FAQ</th><th style="text-align:right">涵蓋率</th><th style="text-align:right">暫停</th></tr></thead><tbody>'+
     LV.map(function(x){return row(x[0],x[1],by[x[0]])}).join('')+row('合計','',all,true)+'</tbody></table></div>'+
     '<p class="hint" style="margin-top:10px">FAQ 共 '+nFaq.toLocaleString()+' 則（秘密客題庫）。涵蓋率＝有這個難度題目的 FAQ ÷ 全部 FAQ。'+
-    '「暫停」＝FAQ 已改版、等每天自動檢查下架的題目。'+(CS.staleInfo&&CS.staleInfo.checked?'　上次過時檢查 '+CS.staleInfo.checked:'')+'</p>';
+    '「暫停」＝FAQ 已改版、等每天自動檢查下架的題目。'+(CS.staleInfo&&CS.staleInfo.checked?'　上次過時檢查 '+CS.staleInfo.checked:'')+'</p>'+
+    '<h3 style="margin:22px 0 4px;font-size:15px">還沒有題目的 FAQ <span style="font-weight:400;color:var(--dim);font-size:12.5px">依點閱數多→少，點閱高＝民眾常問，優先出題</span></h3>'+
+    '<div id="maint-none"></div>';
+  /* 沒有任何題目的 FAQ（點閱數用爬蟲 hits.json 覆蓋過的 item.h） */
+  var m=csSidMap(),none=[];
+  for(q in m)if(!all.f[q])none.push(m[q]);
+  none.sort(function(a,b){return (b.item.h||0)-(a.item.h||0)});
+  var shown=100;
+  function drawNone(){
+    el('maint-none').innerHTML='<p class="hint" style="margin:0 0 6px">共 '+none.length.toLocaleString()+' 則'+(none.length>shown?'，顯示前 '+shown+' 則':'')+'</p>'+
+      '<div class="wrap" style="max-width:980px"><table><thead><tr><th style="text-align:right">#</th><th style="text-align:right">點閱</th><th>局處</th><th>FAQ 標題</th><th>sid</th></tr></thead><tbody>'+
+      none.slice(0,shown).map(function(x,i){return '<tr><td style="text-align:right;color:var(--dim)">'+(i+1)+'</td><td style="text-align:right">'+num(x.item.h)+
+        '</td><td>'+esc(x.org.org)+'</td><td>'+esc(x.item.q)+'</td><td style="color:var(--dim)">'+esc(x.item.sid)+'</td></tr>'}).join('')+'</tbody></table></div>'+
+      (none.length>shown?'<div style="text-align:center;margin:8px 0"><button class="ghost sm" id="maint-more">再顯示 100 則</button></div>':'');
+    var b=el('maint-more');if(b)b.onclick=function(){shown+=100;drawNone()};
+  }
+  drawNone();
 }
 /* 局處輸入框：完全相符用該局處；只打部分字且只對到一個局處也算；空白或對不到＝全部局處 */
 function csOrgName(){
