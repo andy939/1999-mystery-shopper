@@ -137,9 +137,10 @@ if '--prune' in sys.argv:
 out = {'checked': now.strftime('%Y-%m-%d %H:%M'), 'faqDate': meta['generated'],
        'red': len(red), 'yellow': len(yel), 'items': sorted(items.values(), key=lambda v: v['id']),
        'changed': sorted(changed, key=lambda c: c['ratio']), 'gone': gone}
-# 結果沒變就不改檔（只有時間不同時不寫，避免每天多一個 commit）
+# 結果或 FAQ 資料日期有變才改檔：爬蟲每天更新資料時，網站顯示的「上次過時檢查」也跟著更新；
+# 同一份資料重跑（只有時間不同）就不寫，避免多一個 commit
 old_out = json.load(open(OUT, encoding='utf-8')) if os.path.exists(OUT) else {}
-if {k: v for k, v in old_out.items() if k not in ('checked', 'faqDate')} != {k: v for k, v in out.items() if k not in ('checked', 'faqDate')}:
+if {k: v for k, v in old_out.items() if k != 'checked'} != {k: v for k, v in out.items() if k != 'checked'}:
     json.dump(out, open(OUT, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 
 title = {s: cur.get(s, {}).get('q', s) for s in used}
