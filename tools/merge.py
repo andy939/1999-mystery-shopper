@@ -56,6 +56,16 @@ for f in sorted(glob.glob(G + '/out_*.json')):
         good.append(q)
     print(os.path.basename(f), len(arr))
 print('通過', len(good), '剔除', dict(bad), '要點與原文重疊偏低', weak)
+# 對錯則檢查：題目＋要點跟「自己的 FAQ」相似度，明顯低於同批另一則 FAQ 時列出（子代理曾把相鄰幾題的 sid 轉錯位）
+def _bg(t): t = norm(t); return {t[i:i + 2] for i in range(len(t) - 1)}
+_tx = {s: _bg(r['q'] + r['a']) for s, r in ans.items()}
+for q in good:
+    if q['lv'] == 'L0' or len(q['faqs']) != 1 or '空白' in q.get('note', ''): continue   # 答覆空白的沒內文可比
+    Q = _bg(q['q'] + ''.join(q['points']))
+    own = len(Q & _tx[q['faqs'][0]]) / max(1, len(Q))
+    best = max(_tx, key=lambda s: len(Q & _tx[s]))
+    if best != q['faqs'][0] and len(Q & _tx[best]) / max(1, len(Q)) > own + 0.05:
+        print('⚠ 可能對錯則：', q['id'], q['q'][:30], '→ 較像', ans[best]['q'][:30])
 c = collections.Counter(q['lv'] for q in good); print('新增難度', dict(c))
 c = collections.Counter(t for q in good for t in q['type']); print('新增題型', dict(c))
 print('合併後總數', len(bank) + len(good))
